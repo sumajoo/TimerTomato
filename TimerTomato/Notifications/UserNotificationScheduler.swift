@@ -11,6 +11,7 @@ import UserNotifications
 @MainActor
 final class UserNotificationScheduler: NSObject, PomodoroNotifying, UNUserNotificationCenterDelegate {
     private var hasRequestedAuthorization = false
+    private var cachedPermission = PomodoroNotificationPermission.unknown
 
     private var actionHandler: (@MainActor (PomodoroNotificationAction) -> Void)?
 
@@ -25,18 +26,30 @@ final class UserNotificationScheduler: NSObject, PomodoroNotifying, UNUserNotifi
         actionHandler = handler
     }
 
-    func requestAuthorizationIfNeeded() async {
-        guard !hasRequestedAuthorization else {
-            return
-        }
+    func authorizationStatus() async -> PomodoroNotificationPermission {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        cachedPermission = PomodoroNotificationPermission(status: settings.authorizationStatus)
+        return cachedPermission
+    }
 
-        hasRequestedAuthorization = true
+    func requestAuthorizationIfNeeded() async -> PomodoroNotificationPermission {
+        let currentPermission = await authorizationStatus()
+
+        guard currentPermission == .unknown, !hasRequestedAuthorization else {
+            return currentPermission
+        }
 
         do {
-            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+            hasRequestedAuthorization = true
+            let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+            cachedPermission = granted ? .available : .denied
         } catch {
             // Timer completion still works when notification permission is unavailable.
+            hasRequestedAuthorization = false
+            cachedPermission = await authorizationStatus()
         }
+
+        return cachedPermission
     }
 
     func notifySessionCompleted(plannedMinutes: Int) async {
@@ -138,5 +151,20 @@ final class UserNotificationScheduler: NSObject, PomodoroNotifying, UNUserNotifi
         }
 
         actionHandler?(action)
+    }
+}
+
+private extension PomodoroNotificationPermission {
+    init(status: UNAuthorizationStatus) {
+        switch status {
+        case .authorized, .provisional, .ephemeral:
+            self = .available
+        case .denied:
+            self = .denied
+        case .notDetermined:
+            self = .unknown
+        @unknown default:
+            self = .unknown
+        }
     }
 }

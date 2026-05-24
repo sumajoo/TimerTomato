@@ -54,7 +54,10 @@ struct MenuBarContentView: View {
         }
         .padding(TimerTomatoDesign.contentPadding)
         .frame(width: contentWidth)
-        .onAppear(perform: store.refreshForToday)
+        .onAppear {
+            store.refreshLifecycleState()
+            store.refreshNotificationPermission()
+        }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.status)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.sessionsCompletedToday)
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: screen)

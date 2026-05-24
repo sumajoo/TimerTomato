@@ -9,6 +9,8 @@
 
 @MainActor
 final class TestPomodoroNotifier: PomodoroNotifying {
+    var permission = PomodoroNotificationPermission.available
+
     private(set) var authorizationRequestCount = 0
     private(set) var completedSessionMinutes: [Int] = []
     private(set) var completedBreakMinutes: [Int] = []
@@ -18,8 +20,13 @@ final class TestPomodoroNotifier: PomodoroNotifying {
         actionHandler = handler
     }
 
-    func requestAuthorizationIfNeeded() async {
+    func authorizationStatus() async -> PomodoroNotificationPermission {
+        permission
+    }
+
+    func requestAuthorizationIfNeeded() async -> PomodoroNotificationPermission {
         authorizationRequestCount += 1
+        return permission
     }
 
     func notifySessionCompleted(plannedMinutes: Int) async {

@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct TimerTomatoApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var store: PomodoroStore
 
     private let modelContainer: ModelContainer
@@ -34,5 +36,13 @@ struct TimerTomatoApp: App {
             .accessibilityLabel(store.menuBarAccessibilityLabel)
         }
         .menuBarExtraStyle(.window)
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else {
+                return
+            }
+
+            store.refreshLifecycleState()
+            store.refreshNotificationPermission()
+        }
     }
 }

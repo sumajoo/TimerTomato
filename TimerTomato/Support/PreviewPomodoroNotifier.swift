@@ -10,7 +10,13 @@
 final class PreviewPomodoroNotifier: PomodoroNotifying {
     func configureActionHandler(_ handler: @escaping @MainActor (PomodoroNotificationAction) -> Void) {}
 
-    func requestAuthorizationIfNeeded() async {}
+    func authorizationStatus() async -> PomodoroNotificationPermission {
+        .available
+    }
+
+    func requestAuthorizationIfNeeded() async -> PomodoroNotificationPermission {
+        .available
+    }
 
     func notifySessionCompleted(plannedMinutes: Int) async {}
 

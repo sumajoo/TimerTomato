@@ -308,6 +308,48 @@ struct TimerTomatoTests {
         #expect(restored.activeStartedAt == date(hour: 9, minute: 0))
     }
 
+    @Test func expiredTimerCompletesDuringRestore() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        store.start()
+        now = date(hour: 9, minute: 30)
+
+        let restoredNotifier = TestPomodoroNotifier()
+        let restored = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { now },
+            notifier: restoredNotifier
+        )
+        await Task.yield()
+
+        #expect(restored.status == .idle)
+        #expect(restored.sessions.count == 1)
+        #expect(restored.sessionHistory.count == 1)
+        #expect(restored.sessions[0].endedAt == date(hour: 9, minute: 25))
+        #expect(restoredNotifier.completedSessionMinutes == [25])
+    }
+
+    @Test func lifecycleRefreshCompletesExpiredRunningTimer() async {
+        let defaults = makeDefaults()
+        let notifier = TestPomodoroNotifier()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now }, notifier: notifier)
+
+        store.start()
+        now = date(hour: 9, minute: 30)
+        store.refreshLifecycleState()
+        await Task.yield()
+
+        #expect(store.status == .idle)
+        #expect(store.sessions.count == 1)
+        #expect(store.sessions[0].endedAt == date(hour: 9, minute: 25))
+        #expect(notifier.completedSessionMinutes == [25])
+    }
+
     @Test func activeBreakTimerRestoresFromAbsoluteDates() async {
         let defaults = makeDefaults()
         var now = date(hour: 9, minute: 0)
@@ -324,6 +366,21 @@ struct TimerTomatoTests {
         #expect(restored.status == .running)
         #expect(restored.activeTimerKind == .breakTime)
         #expect(restored.remainingSeconds == 180)
+    }
+
+    @Test func deniedNotificationPermissionIsVisibleAndTimerStillStarts() async {
+        let defaults = makeDefaults()
+        let notifier = TestPomodoroNotifier()
+        notifier.permission = .denied
+        let store = makeStore(defaults: defaults, notifier: notifier)
+
+        store.start()
+        await Task.yield()
+
+        #expect(store.status == .running)
+        #expect(store.notificationPermission == .denied)
+        #expect(store.notificationWarningText == "Mitteilungen deaktiviert")
+        #expect(notifier.authorizationRequestCount == 1)
     }
 
     @Test func notificationActionStartsNextFocusSession() async {

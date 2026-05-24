@@ -5,6 +5,7 @@
 //  Created by Jonas Becker on 24.05.26.
 //
 
+@preconcurrency import AppKit
 import Foundation
 import Observation
 import SwiftData
@@ -65,6 +66,7 @@ final class PomodoroStore {
     private(set) var activePlannedMinutes: Int?
     private(set) var activePauseBeforeSeconds: TimeInterval?
     private(set) var pausedRemainingSeconds: TimeInterval?
+    private(set) var notificationPermission = PomodoroNotificationPermission.unknown
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let persistenceKey: String
@@ -74,9 +76,9 @@ final class PomodoroStore {
     @ObservationIgnored private let nowProvider: () -> Date
     @ObservationIgnored private let notifier: any PomodoroNotifying
     @ObservationIgnored private let shouldScheduleTimer: Bool
+    @ObservationIgnored private let runtime = PomodoroRuntime()
     @ObservationIgnored private var storedDay: Date
     @ObservationIgnored private var lastCompletedAt: Date?
-    @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var isRestoringSnapshot = false
 
     var menuBarTitle: String {
@@ -100,6 +102,10 @@ final class PomodoroStore {
         case .paused:
             return "pause.circle.fill"
         }
+    }
+
+    var notificationWarningText: String? {
+        notificationPermission == .denied ? "Mitteilungen deaktiviert" : nil
     }
 
     var remainingSeconds: Int {
@@ -222,16 +228,13 @@ final class PomodoroStore {
             self?.handleNotificationAction(action)
         }
 
-        restoreSnapshot()
-        refreshForToday(at: initialDate)
-
-        if status == .running {
-            if remainingSeconds <= 0 {
-                completeActiveTimer(at: activeEndAt ?? initialDate)
-            } else {
-                scheduleTimer()
-            }
+        if shouldScheduleTimer {
+            configureLifecycleObservers()
+            refreshNotificationPermission()
         }
+
+        restoreSnapshot()
+        refreshLifecycleState(at: initialDate)
     }
 
     func start() {
@@ -249,9 +252,7 @@ final class PomodoroStore {
             pauseBeforeSeconds: lastCompletedAt.map { max(0, startDate.timeIntervalSince($0)) }
         )
 
-        Task {
-            await notifier.requestAuthorizationIfNeeded()
-        }
+        requestNotificationAuthorization()
     }
 
     func startBreak() {
@@ -269,9 +270,7 @@ final class PomodoroStore {
             pauseBeforeSeconds: nil
         )
 
-        Task {
-            await notifier.requestAuthorizationIfNeeded()
-        }
+        requestNotificationAuthorization()
     }
 
     func pause() {
@@ -284,8 +283,7 @@ final class PomodoroStore {
         pausedRemainingSeconds = TimeInterval(remainingSeconds)
         status = .paused
 
-        timer?.invalidate()
-        timer = nil
+        runtime.invalidateTimer()
         persistSnapshot()
     }
 
@@ -306,8 +304,7 @@ final class PomodoroStore {
     }
 
     func reset() {
-        timer?.invalidate()
-        timer = nil
+        runtime.invalidateTimer()
 
         status = .idle
         activeTimerKind = .focus
@@ -343,6 +340,16 @@ final class PomodoroStore {
 
     func refreshForToday() {
         refreshForToday(at: nowProvider())
+    }
+
+    func refreshLifecycleState() {
+        refreshLifecycleState(at: nowProvider())
+    }
+
+    func refreshNotificationPermission() {
+        Task {
+            notificationPermission = await notifier.authorizationStatus()
+        }
     }
 
     func sessions(on date: Date) -> [PomodoroSession] {
@@ -560,8 +567,7 @@ final class PomodoroStore {
         pausedRemainingSeconds = nil
         currentDate = endedAt
 
-        timer?.invalidate()
-        timer = nil
+        runtime.invalidateTimer()
 
         persistSnapshot()
 
@@ -588,8 +594,7 @@ final class PomodoroStore {
         pausedRemainingSeconds = nil
         currentDate = endedAt
 
-        timer?.invalidate()
-        timer = nil
+        runtime.invalidateTimer()
 
         persistSnapshot()
 
@@ -603,11 +608,8 @@ final class PomodoroStore {
             return
         }
 
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.tick()
-            }
+        runtime.scheduleTimer { [weak self] in
+            self?.tick()
         }
     }
 
@@ -675,5 +677,77 @@ final class PomodoroStore {
         }
 
         defaults.set(data, forKey: persistenceKey)
+    }
+
+    private func refreshLifecycleState(at date: Date) {
+        currentDate = date
+
+        if status == .running, remainingSeconds <= 0 {
+            completeActiveTimer(at: activeEndAt ?? date)
+            refreshForToday(at: date)
+            return
+        }
+
+        refreshForToday(at: date)
+
+        if status == .running {
+            scheduleTimer()
+        }
+    }
+
+    private func configureLifecycleObservers() {
+        runtime.observeWake { [weak self] in
+            self?.refreshLifecycleState()
+            self?.refreshNotificationPermission()
+        }
+    }
+
+    private func requestNotificationAuthorization() {
+        Task {
+            notificationPermission = await notifier.requestAuthorizationIfNeeded()
+        }
+    }
+}
+
+nonisolated private final class PomodoroRuntime {
+    private var timer: Timer?
+    private var wakeObserver: NSObjectProtocol?
+
+    deinit {
+        timer?.invalidate()
+
+        if let wakeObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
+        }
+    }
+
+    func scheduleTimer(tick: @escaping @MainActor () -> Void) {
+        timer?.invalidate()
+
+        let timer = Timer(timeInterval: 1, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                tick()
+            }
+        }
+        timer.tolerance = 0.2
+        self.timer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func invalidateTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+
+    func observeWake(_ handler: @escaping @MainActor () -> Void) {
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                handler()
+            }
+        }
     }
 }

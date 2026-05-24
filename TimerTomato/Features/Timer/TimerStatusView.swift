@@ -38,6 +38,13 @@ struct TimerStatusView: View {
                     Text(statusText)
                         .font(.callout)
                         .foregroundStyle(TimerTomatoDesign.secondaryText)
+
+                    if let notificationWarningText = store.notificationWarningText {
+                        Label(notificationWarningText, systemImage: "bell.slash")
+                            .font(.caption)
+                            .foregroundStyle(TimerTomatoDesign.tertiaryText)
+                            .labelStyle(.titleAndIcon)
+                    }
                 }
 
                 TimerProgressBarView(progress: store.progress, tint: accentColor)
