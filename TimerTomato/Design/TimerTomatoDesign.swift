@@ -79,12 +79,108 @@ enum TimerTomatoDesign {
     }
 }
 
-extension View {
-    func timerTomatoCardBorder(cornerRadius: CGFloat) -> some View {
-        overlay {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(TimerTomatoDesign.cardBorder, lineWidth: TimerTomatoDesign.cardBorderWidth)
-                .allowsHitTesting(false)
+enum TimerTomatoCardVariant {
+    case hero
+    case panel
+    case row
+
+    var cornerRadius: CGFloat {
+        switch self {
+        case .hero:
+            TimerTomatoDesign.heroCornerRadius
+        case .panel:
+            TimerTomatoDesign.panelCornerRadius
+        case .row:
+            TimerTomatoDesign.rowCornerRadius
         }
+    }
+
+    var shadowColor: Color {
+        switch self {
+        case .hero:
+            TimerTomatoDesign.heroShadow
+        case .panel, .row:
+            TimerTomatoDesign.panelShadow
+        }
+    }
+
+    var shadowRadius: CGFloat {
+        switch self {
+        case .hero:
+            28
+        case .panel:
+            16
+        case .row:
+            14
+        }
+    }
+
+    var shadowY: CGFloat {
+        switch self {
+        case .hero:
+            18
+        case .panel:
+            10
+        case .row:
+            8
+        }
+    }
+}
+
+private struct TimerTomatoCardModifier: ViewModifier {
+    let variant: TimerTomatoCardVariant
+    let isInteractive: Bool
+
+    private var cornerRadius: CGFloat {
+        variant.cornerRadius
+    }
+
+    func body(content: Content) -> some View {
+        card(content: content)
+    }
+
+    @ViewBuilder
+    private func card(content: Content) -> some View {
+        if isInteractive {
+            baseCard(content: content)
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+                .shadow(color: variant.shadowColor, radius: variant.shadowRadius, x: 0, y: variant.shadowY)
+                .overlay {
+                    cardBorder
+                }
+        } else {
+            baseCard(content: content)
+                .glassEffect(
+                    .regular,
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+                .shadow(color: variant.shadowColor, radius: variant.shadowRadius, x: 0, y: variant.shadowY)
+                .overlay {
+                    cardBorder
+                }
+        }
+    }
+
+    private func baseCard(content: Content) -> some View {
+        content
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(TimerTomatoDesign.surfaceFill)
+            }
+    }
+
+    private var cardBorder: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .stroke(TimerTomatoDesign.cardBorder, lineWidth: TimerTomatoDesign.cardBorderWidth)
+            .allowsHitTesting(false)
+    }
+}
+
+extension View {
+    func timerTomatoCard(_ variant: TimerTomatoCardVariant, isInteractive: Bool = false) -> some View {
+        modifier(TimerTomatoCardModifier(variant: variant, isInteractive: isInteractive))
     }
 }

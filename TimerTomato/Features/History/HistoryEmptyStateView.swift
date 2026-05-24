@@ -22,15 +22,7 @@ struct HistoryEmptyStateView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
-        .background {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                .fill(TimerTomatoDesign.surfaceFill)
-        }
-        .glassEffect(
-            .regular,
-            in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-        )
-        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
+        .timerTomatoCard(.row)
     }
 }
 

@@ -26,16 +26,7 @@ struct SessionEmptyStateView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
         .padding(.horizontal, 12)
-        .background {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                .fill(TimerTomatoDesign.surfaceFill)
-        }
-        .glassEffect(
-            .regular,
-            in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-        )
-        .shadow(color: TimerTomatoDesign.panelShadow, radius: 16, x: 0, y: 10)
-        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+        .timerTomatoCard(.panel)
         .accessibilityElement(children: .combine)
     }
 }

@@ -41,16 +41,7 @@ struct SessionRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                .fill(TimerTomatoDesign.surfaceFill)
-        }
-        .glassEffect(
-            .regular,
-            in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-        )
-        .shadow(color: TimerTomatoDesign.panelShadow, radius: 14, x: 0, y: 8)
-        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
+        .timerTomatoCard(.row)
         .accessibilityElement(children: .combine)
     }
 }

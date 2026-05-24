@@ -111,15 +111,7 @@ struct HistoryDayDetailView: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                    .fill(TimerTomatoDesign.surfaceFill)
-            }
-            .glassEffect(
-                .regular,
-                in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-            )
-            .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+            .timerTomatoCard(.panel)
         }
     }
 }

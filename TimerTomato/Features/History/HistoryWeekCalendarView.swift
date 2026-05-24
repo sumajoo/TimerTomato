@@ -40,15 +40,7 @@ struct HistoryWeekCalendarView: View {
             }
             .padding(4)
             .frame(maxWidth: .infinity)
-            .background {
-                RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                    .fill(TimerTomatoDesign.surfaceFill)
-            }
-            .glassEffect(
-                .regular,
-                in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-            )
-            .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+            .timerTomatoCard(.panel)
         }
     }
 }

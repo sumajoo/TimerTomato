@@ -40,16 +40,8 @@ struct HistoryDayCellView: View {
     private var content: some View {
         if isSelected {
             baseContent
-                .background {
-                    RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                        .fill(TimerTomatoDesign.surfaceFill)
-                }
-                .glassEffect(
-                    .regular.interactive(),
-                    in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                )
+                .timerTomatoCard(.row, isInteractive: true)
                 .glassEffectID("history-day-selection", in: glassNamespace)
-                .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         } else {
             baseContent
         }

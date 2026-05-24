@@ -48,16 +48,7 @@ struct TimerStatusView: View {
             .padding(.horizontal, 20)
             .padding(.top, 22)
             .padding(.bottom, 18)
-            .background {
-                RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
-                    .fill(TimerTomatoDesign.surfaceFill)
-            }
-            .glassEffect(
-                .regular,
-                in: .rect(cornerRadius: TimerTomatoDesign.heroCornerRadius)
-            )
-            .shadow(color: TimerTomatoDesign.heroShadow, radius: 28, x: 0, y: 18)
-            .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.heroCornerRadius)
+            .timerTomatoCard(.hero)
         }
     }
 }
