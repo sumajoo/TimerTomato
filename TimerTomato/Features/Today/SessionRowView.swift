@@ -20,7 +20,7 @@ struct SessionRowView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.title3)
-                .foregroundStyle(.green)
+                .foregroundStyle(TimerTomatoDesign.success)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -49,22 +49,8 @@ struct SessionRowView: View {
             .regular,
             in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            TimerTomatoDesign.surfaceHighlight,
-                            TimerTomatoDesign.surfaceMidline,
-                            TimerTomatoDesign.surfaceLowlight
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.65
-                )
-        }
         .shadow(color: TimerTomatoDesign.panelShadow, radius: 14, x: 0, y: 8)
+        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         .accessibilityElement(children: .combine)
     }
 }

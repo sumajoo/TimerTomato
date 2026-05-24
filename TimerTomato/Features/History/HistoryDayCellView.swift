@@ -49,10 +49,7 @@ struct HistoryDayCellView: View {
                     in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
                 )
                 .glassEffectID("history-day-selection", in: glassNamespace)
-                .overlay {
-                    RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                        .strokeBorder(TimerTomatoDesign.surfaceMidline, lineWidth: 0.7)
-                }
+                .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         } else {
             baseContent
         }

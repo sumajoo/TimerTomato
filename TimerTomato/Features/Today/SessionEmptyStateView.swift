@@ -34,22 +34,8 @@ struct SessionEmptyStateView: View {
             .regular,
             in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
         )
-        .overlay {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            TimerTomatoDesign.surfaceHighlight,
-                            TimerTomatoDesign.surfaceMidline,
-                            TimerTomatoDesign.surfaceLowlight
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.75
-                )
-        }
         .shadow(color: TimerTomatoDesign.panelShadow, radius: 16, x: 0, y: 10)
+        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.panelCornerRadius)
         .accessibilityElement(children: .combine)
     }
 }

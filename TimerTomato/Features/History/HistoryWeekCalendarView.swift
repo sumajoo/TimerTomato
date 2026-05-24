@@ -48,10 +48,7 @@ struct HistoryWeekCalendarView: View {
                 .regular,
                 in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
             )
-            .overlay {
-                RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                    .strokeBorder(TimerTomatoDesign.surfaceMidline, lineWidth: 0.65)
-            }
+            .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.panelCornerRadius)
         }
     }
 }

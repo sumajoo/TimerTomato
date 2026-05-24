@@ -87,10 +87,7 @@ struct TodayStatsView: View {
             RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
                 .fill(TimerTomatoDesign.surfaceFill)
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
-                .strokeBorder(TimerTomatoDesign.surfaceMidline, lineWidth: 0.65)
-        }
+        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Heute \(store.todaySummaryText), Tagesziel \(store.dailyGoalCountText)")
     }

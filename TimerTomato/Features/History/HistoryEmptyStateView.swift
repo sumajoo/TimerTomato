@@ -30,6 +30,7 @@ struct HistoryEmptyStateView: View {
             .regular,
             in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         )
+        .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.rowCornerRadius)
     }
 }
 

@@ -56,22 +56,8 @@ struct TimerStatusView: View {
                 .regular,
                 in: .rect(cornerRadius: TimerTomatoDesign.heroCornerRadius)
             )
-            .overlay {
-                RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                TimerTomatoDesign.surfaceHighlight,
-                                TimerTomatoDesign.surfaceMidline,
-                                TimerTomatoDesign.surfaceLowlight
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.9
-                    )
-            }
             .shadow(color: TimerTomatoDesign.heroShadow, radius: 28, x: 0, y: 18)
+            .timerTomatoCardBorder(cornerRadius: TimerTomatoDesign.heroCornerRadius)
         }
     }
 }
