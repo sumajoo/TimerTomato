@@ -23,4 +23,7 @@ struct PomodoroSnapshot: Codable {
     var activePlannedMinutes: Int?
     var activePauseBeforeSeconds: TimeInterval?
     var pausedRemainingSeconds: TimeInterval?
+    var pendingFocusIntent: String? = nil
+    var activeFocusIntent: String? = nil
+    var pendingOutcomeSessionID: UUID? = nil
 }

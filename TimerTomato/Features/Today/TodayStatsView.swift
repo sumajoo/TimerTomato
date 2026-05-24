@@ -20,6 +20,8 @@ struct TodayStatsView: View {
                 Text(store.todaySummaryText)
                     .font(.footnote)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
 
                 Spacer(minLength: 10)
 

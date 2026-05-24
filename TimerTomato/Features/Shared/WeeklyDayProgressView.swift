@@ -16,7 +16,7 @@ struct WeeklyDayProgressView: View {
     }
 
     private var countText: String {
-        day.sessionCount == 0 ? "-" : "\(day.sessionCount)"
+        day.focusWinCount == 0 ? "-" : "\(day.focusWinCount)"
     }
 
     private var tint: Color {
@@ -34,7 +34,7 @@ struct WeeklyDayProgressView: View {
                     Capsule()
                         .fill(TimerTomatoDesign.trackFill)
 
-                    if day.sessionCount > 0 {
+                    if day.focusWinCount > 0 {
                         Capsule()
                             .fill(tint)
                             .frame(height: max(3, proxy.size.height * CGFloat(day.goalProgress)))
@@ -51,9 +51,9 @@ struct WeeklyDayProgressView: View {
 
             Text(countText)
                 .font(.caption2.monospacedDigit())
-                .foregroundStyle(day.sessionCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
+                .foregroundStyle(day.focusWinCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
         }
         .frame(maxWidth: .infinity)
-        .accessibilityLabel("\(weekdayText), \(day.sessionCount) Sitzungen")
+        .accessibilityLabel("\(weekdayText), \(day.focusWinCount) Fokus-Siege")
     }
 }

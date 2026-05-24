@@ -18,6 +18,12 @@ struct PomodoroWeekSummary: Equatable {
         }
     }
 
+    var focusWinCount: Int {
+        days.reduce(0) { result, day in
+            result + day.focusWinCount
+        }
+    }
+
     var focusMinutes: Int {
         days.reduce(0) { result, day in
             result + day.focusMinutes
@@ -29,14 +35,14 @@ struct PomodoroWeekSummary: Equatable {
             return 0
         }
 
-        return min(Double(sessionCount) / Double(weeklyGoalSessions), 1)
+        return min(Double(focusWinCount) / Double(weeklyGoalSessions), 1)
     }
 
     var didReachGoal: Bool {
-        sessionCount >= weeklyGoalSessions
+        focusWinCount >= weeklyGoalSessions
     }
 
     var goalCountText: String {
-        "\(min(sessionCount, weeklyGoalSessions))/\(weeklyGoalSessions)"
+        "\(min(focusWinCount, weeklyGoalSessions))/\(weeklyGoalSessions)"
     }
 }

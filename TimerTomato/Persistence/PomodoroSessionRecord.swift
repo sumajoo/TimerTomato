@@ -17,19 +17,28 @@ final class PomodoroSessionRecord {
     var endedAt: Date
     var plannedMinutes: Int
     var pauseBeforeSeconds: TimeInterval?
+    var intent: String?
+    var outcomeRawValue: String?
+    var isOutcomeTracked: Bool?
 
     init(
         id: UUID = UUID(),
         startedAt: Date,
         endedAt: Date,
         plannedMinutes: Int,
-        pauseBeforeSeconds: TimeInterval?
+        pauseBeforeSeconds: TimeInterval?,
+        intent: String? = nil,
+        outcomeRawValue: String? = nil,
+        isOutcomeTracked: Bool = false
     ) {
         self.id = id
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.plannedMinutes = plannedMinutes
         self.pauseBeforeSeconds = pauseBeforeSeconds
+        self.intent = PomodoroSession.normalizedIntent(intent)
+        self.outcomeRawValue = outcomeRawValue
+        self.isOutcomeTracked = isOutcomeTracked
     }
 
     convenience init(session: PomodoroSession) {
@@ -38,7 +47,10 @@ final class PomodoroSessionRecord {
             startedAt: session.startedAt,
             endedAt: session.endedAt,
             plannedMinutes: session.plannedMinutes,
-            pauseBeforeSeconds: session.pauseBeforeSeconds
+            pauseBeforeSeconds: session.pauseBeforeSeconds,
+            intent: session.intent,
+            outcomeRawValue: session.outcome?.rawValue,
+            isOutcomeTracked: session.isOutcomeTracked
         )
     }
 }
@@ -50,7 +62,10 @@ extension PomodoroSession {
             startedAt: record.startedAt,
             endedAt: record.endedAt,
             plannedMinutes: record.plannedMinutes,
-            pauseBeforeSeconds: record.pauseBeforeSeconds
+            pauseBeforeSeconds: record.pauseBeforeSeconds,
+            intent: record.intent,
+            outcome: record.outcomeRawValue.flatMap(PomodoroSessionOutcome.init(rawValue:)),
+            isOutcomeTracked: record.isOutcomeTracked ?? false
         )
     }
 }

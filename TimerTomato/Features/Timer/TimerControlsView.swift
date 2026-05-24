@@ -30,6 +30,7 @@ struct TimerControlsView: View {
                     .frame(width: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(TimerTomatoDesign.tomato)
+                    .disabled(!store.canStartFocus)
                     .glassEffectID("timer-primary-control", in: glassNamespace)
 
                 if store.canStartBreak {

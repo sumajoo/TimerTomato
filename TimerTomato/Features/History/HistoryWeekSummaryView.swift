@@ -92,9 +92,11 @@ struct HistoryWeekSummaryView: View {
                     .font(.callout)
                     .bold()
 
-                Text("\(weekSummary.sessionCount) Sitzungen · \(weekSummary.focusMinutes) min")
+                Text("\(weekSummary.focusWinCount) Siege · \(weekSummary.sessionCount) Sitzungen · \(weekSummary.focusMinutes) min")
                     .font(.footnote)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             Spacer(minLength: 10)

@@ -60,6 +60,7 @@ struct MenuBarContentView: View {
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.status)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.sessionsCompletedToday)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.focusWinsToday)
         .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: screen)
     }
 

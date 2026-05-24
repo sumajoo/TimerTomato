@@ -53,4 +53,22 @@ enum PomodoroFormatters {
         let averagePauseMinutes = max(0, Int(averagePauseSeconds.rounded()) / 60)
         return "\(sessionText) · \(focusMinutes) min · Ø Pause \(averagePauseMinutes) min"
     }
+
+    static func focusWinsSummaryText(
+        focusWins: Int,
+        sessions: Int,
+        focusMinutes: Int,
+        averagePauseSeconds: TimeInterval?
+    ) -> String {
+        let winText = focusWins == 1 ? "1 Sieg" : "\(focusWins) Siege"
+        let sessionText = sessions == 1 ? "1 Sitzung" : "\(sessions) Sitzungen"
+        let baseText = "\(winText) · \(sessionText) · \(focusMinutes) min"
+
+        guard let averagePauseSeconds else {
+            return baseText
+        }
+
+        let averagePauseMinutes = max(0, Int(averagePauseSeconds.rounded()) / 60)
+        return "\(baseText) · Ø Pause \(averagePauseMinutes) min"
+    }
 }

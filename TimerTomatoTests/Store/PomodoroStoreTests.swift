@@ -100,7 +100,83 @@ struct TimerTomatoTests {
         #expect(store.sessionHistory.count == 1)
         #expect(store.sessions[0].plannedMinutes == 25)
         #expect(store.sessions[0].pauseBeforeSeconds == nil)
+        #expect(store.sessions[0].isPendingOutcome)
+        #expect(store.pendingOutcomeSession?.id == store.sessions[0].id)
+        #expect(store.focusWinsToday == 0)
         #expect(notifier.completedSessionMinutes == [25])
+
+        store.completePendingOutcome(.completed)
+
+        #expect(store.pendingOutcomeSession == nil)
+        #expect(store.focusWinsToday == 1)
+        #expect(store.sessions[0].outcome == .completed)
+    }
+
+    @Test func intentAndPendingOutcomeRestoreUntilSelection() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        store.pendingFocusIntent = "  Bug fixen  "
+        store.start()
+
+        #expect(store.pendingFocusIntent.isEmpty)
+        #expect(store.activeFocusIntentText == "Bug fixen")
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+
+        let pendingSessionID = store.pendingOutcomeSession?.id
+
+        #expect(pendingSessionID != nil)
+        #expect(store.sessions[0].intentTitle == "Bug fixen")
+        #expect(store.sessions[0].isPendingOutcome)
+        #expect(store.focusWinsToday == 0)
+
+        let restored = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        #expect(restored.pendingOutcomeSession?.id == pendingSessionID)
+        #expect(restored.sessions[0].intentTitle == "Bug fixen")
+
+        restored.completePendingOutcome(.progressed)
+
+        #expect(restored.pendingOutcomeSession == nil)
+        #expect(restored.focusWinsToday == 1)
+        #expect(restored.sessions[0].outcome == .progressed)
+    }
+
+    @Test func focusWinsTreatOutcomesAndLegacySessionsCorrectly() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(day: 1, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 1, startHour: 10, startMinute: 0, outcome: .progressed, isOutcomeTracked: true),
+                session(day: 1, startHour: 11, startMinute: 0, outcome: .blocked, isOutcomeTracked: true),
+                session(day: 1, startHour: 12, startMinute: 0)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 1, hour: 13, minute: 0) }
+        )
+
+        store.dailyGoalSessions = 3
+        store.weeklyGoalSessions = 3
+
+        #expect(store.sessionsCompletedToday == 4)
+        #expect(store.focusWinsToday == 3)
+        #expect(store.dailyGoalProgress == 1)
+        #expect(store.dailyGoalCountText == "3/3")
+
+        let summary = store.weekSummary(containing: date(day: 1, hour: 13, minute: 0))
+        #expect(summary.sessionCount == 4)
+        #expect(summary.focusWinCount == 3)
+        #expect(summary.goalProgress == 1)
+        #expect(summary.goalCountText == "3/3")
     }
 
     @Test func pauseBetweenSessionsIsMeasuredFromPreviousCompletion() async {
@@ -111,6 +187,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(hour: 9, minute: 35)
         store.start()
@@ -129,20 +206,23 @@ struct TimerTomatoTests {
         store.start()
         now = date(hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(hour: 9, minute: 34)
         store.start()
         now = date(hour: 9, minute: 59)
         store.tick()
+        store.completePendingOutcome(.progressed)
 
         #expect(store.sessionsCompletedToday == 2)
+        #expect(store.focusWinsToday == 2)
         #expect(store.focusMinutesToday == 50)
         #expect(store.averagePauseSecondsToday == 540)
         #expect(store.dailyGoalProgress == 0.5)
         #expect(store.dailyGoalCountText == "2/4")
-        #expect(store.dailyGoalStatusText == "Noch 2 Sitzungen")
+        #expect(store.dailyGoalStatusText == "Noch 2 Fokus-Siege")
         #expect(store.compactTodaySummaryText == "2 · 50 min")
-        #expect(store.todaySummaryText == "2 Sitzungen · 50 min · Ø Pause 9 min")
+        #expect(store.todaySummaryText == "2 Siege · 2 Sitzungen · 50 min · Ø Pause 9 min")
     }
 
     @Test func breakTimerCompletesWithoutRecordingSession() async {
@@ -154,6 +234,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         store.startBreak()
         #expect(store.status == .running)
@@ -183,6 +264,26 @@ struct TimerTomatoTests {
         #expect(store.sessions.isEmpty)
     }
 
+    @Test func resetClearsActiveIntentWithoutRecordingSession() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Lernen"
+        store.start()
+
+        #expect(store.activeFocusIntentText == "Lernen")
+        #expect(store.pendingFocusIntent.isEmpty)
+
+        now = date(hour: 9, minute: 10)
+        store.reset()
+
+        #expect(store.status == .idle)
+        #expect(store.activeFocusIntentText == nil)
+        #expect(store.sessions.isEmpty)
+        #expect(store.sessionHistory.isEmpty)
+    }
+
     @Test func dayRolloverClearsVisibleTodayLogAndKeepsHistory() async {
         let defaults = makeDefaults()
         var now = date(day: 1, hour: 23, minute: 0)
@@ -191,6 +292,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(day: 1, hour: 23, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         #expect(store.sessions.count == 1)
 
@@ -211,17 +313,20 @@ struct TimerTomatoTests {
         store.start()
         now = date(day: 18, hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(day: 19, hour: 10, minute: 0)
         store.refreshForToday()
         store.start()
         now = date(day: 19, hour: 10, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(day: 19, hour: 11, minute: 0)
         store.start()
         now = date(day: 19, hour: 11, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         let days = store.historyDays(containing: date(day: 19, hour: 12, minute: 0))
         let firstDay = days.first { store.isSameDay($0.date, date(day: 18, hour: 12, minute: 0)) }
@@ -229,8 +334,10 @@ struct TimerTomatoTests {
 
         #expect(days.count == 7)
         #expect(firstDay?.sessionCount == 1)
+        #expect(firstDay?.focusWinCount == 1)
         #expect(firstDay?.focusMinutes == 25)
         #expect(secondDay?.sessionCount == 2)
+        #expect(secondDay?.focusWinCount == 2)
         #expect(secondDay?.focusMinutes == 50)
     }
 
@@ -276,6 +383,7 @@ struct TimerTomatoTests {
         let summary = store.weekSummary(containing: date(day: 24, hour: 12, minute: 0))
 
         #expect(summary.sessionCount == 3)
+        #expect(summary.focusWinCount == 3)
         #expect(summary.focusMinutes == 100)
         #expect(summary.goalProgress == 0.5)
         #expect(summary.goalCountText == "3/6")
@@ -304,6 +412,33 @@ struct TimerTomatoTests {
         #expect(store.streakSummary.currentDays == 1)
         #expect(store.streakSummary.bestDays == 2)
         #expect(store.streakSummary.latestGoalDate == date(day: 23, hour: 0, minute: 0))
+    }
+
+    @Test func streakUsesFocusWinsInsteadOfRawSessions() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(day: 20, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 20, startHour: 10, startMinute: 0, outcome: .progressed, isOutcomeTracked: true),
+                session(day: 21, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 21, startHour: 10, startMinute: 0, outcome: .blocked, isOutcomeTracked: true),
+                session(day: 22, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 22, startHour: 10, startMinute: 0, outcome: .progressed, isOutcomeTracked: true)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 23, hour: 12, minute: 0) }
+        )
+
+        store.dailyGoalSessions = 2
+
+        #expect(store.streakSummary.currentDays == 1)
+        #expect(store.streakSummary.bestDays == 1)
+        #expect(store.streakSummary.latestGoalDate == date(day: 22, hour: 0, minute: 0))
     }
 
     @Test func bestFocusDaysSortByMinutesSessionsThenNewestDate() async {
@@ -348,6 +483,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(day: 18, hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(day: 20, hour: 10, minute: 0)
         store.refreshForToday()
@@ -396,7 +532,10 @@ struct TimerTomatoTests {
             activeEndAt: nil,
             activePlannedMinutes: nil,
             activePauseBeforeSeconds: nil,
-            pausedRemainingSeconds: nil
+            pausedRemainingSeconds: nil,
+            pendingFocusIntent: nil,
+            activeFocusIntent: nil,
+            pendingOutcomeSessionID: nil
         )
         let data = try JSONEncoder().encode(snapshot)
 
@@ -483,6 +622,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
         store.startBreak()
 
         now = date(hour: 9, minute: 27)
@@ -517,6 +657,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(hour: 9, minute: 35)
         notifier.perform(action: .startNextFocus)
@@ -536,6 +677,7 @@ struct TimerTomatoTests {
         store.start()
         now = date(hour: 9, minute: 25)
         store.tick()
+        store.completePendingOutcome(.completed)
 
         now = date(hour: 9, minute: 26)
         notifier.perform(action: .startBreak)
@@ -605,7 +747,10 @@ struct TimerTomatoTests {
         day: Int,
         startHour: Int,
         startMinute: Int,
-        durationMinutes: Int = PomodoroStore.defaultMinutes
+        durationMinutes: Int = PomodoroStore.defaultMinutes,
+        intent: String? = nil,
+        outcome: PomodoroSessionOutcome? = nil,
+        isOutcomeTracked: Bool = false
     ) -> PomodoroSession {
         let startedAt = date(day: day, hour: startHour, minute: startMinute)
         let endedAt = testCalendar.date(byAdding: .minute, value: durationMinutes, to: startedAt) ?? startedAt
@@ -614,7 +759,10 @@ struct TimerTomatoTests {
             startedAt: startedAt,
             endedAt: endedAt,
             plannedMinutes: durationMinutes,
-            pauseBeforeSeconds: nil
+            pauseBeforeSeconds: nil,
+            intent: intent,
+            outcome: outcome,
+            isOutcomeTracked: isOutcomeTracked
         )
     }
 

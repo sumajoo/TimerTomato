@@ -32,7 +32,7 @@ struct HistoryDayCellView: View {
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
-        .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.sessionCount) Sitzungen")
+        .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.focusWinCount) Fokus-Siege")
         .accessibilityHint("Der Balken zeigt den Fortschritt zum Tagesziel.")
         .help("Tagesziel-Fortschritt")
     }
@@ -83,7 +83,7 @@ struct HistoryDayCellView: View {
                 Capsule()
                     .fill(TimerTomatoDesign.trackFill)
 
-                if day.sessionCount > 0 {
+                if day.focusWinCount > 0 {
                     GeometryReader { proxy in
                         Capsule()
                             .fill(progressColor)
@@ -94,9 +94,9 @@ struct HistoryDayCellView: View {
             .frame(height: 3)
             .frame(width: 42)
 
-            Text(day.sessionCount == 0 ? "-" : "\(day.sessionCount)")
+            Text(day.focusWinCount == 0 ? "-" : "\(day.focusWinCount)")
                 .font(.footnote.monospacedDigit())
-                .foregroundStyle(day.sessionCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
+                .foregroundStyle(day.focusWinCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
         }
         .padding(.horizontal, 4)
         .frame(maxWidth: .infinity, minHeight: 62)

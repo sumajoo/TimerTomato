@@ -20,6 +20,10 @@ struct PomodoroHistoryDay: Identifiable, Equatable {
         sessions.count
     }
 
+    var focusWinCount: Int {
+        sessions.filter(\.isFocusWin).count
+    }
+
     var focusMinutes: Int {
         sessions.reduce(0) { result, session in
             result + session.plannedMinutes
@@ -31,10 +35,10 @@ struct PomodoroHistoryDay: Identifiable, Equatable {
             return 0
         }
 
-        return min(Double(sessionCount) / Double(dailyGoalSessions), 1)
+        return min(Double(focusWinCount) / Double(dailyGoalSessions), 1)
     }
 
     var didReachGoal: Bool {
-        sessionCount >= dailyGoalSessions
+        focusWinCount >= dailyGoalSessions
     }
 }

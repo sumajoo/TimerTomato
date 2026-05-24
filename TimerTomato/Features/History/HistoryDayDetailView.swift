@@ -21,16 +21,21 @@ struct HistoryDayDetailView: View {
         }
     }
 
+    private var focusWinCount: Int {
+        sessions.filter(\.isFocusWin).count
+    }
+
     private var summaryText: String {
-        PomodoroFormatters.todaySummaryText(
+        PomodoroFormatters.focusWinsSummaryText(
+            focusWins: focusWinCount,
             sessions: sessions.count,
             focusMinutes: focusMinutes,
             averagePauseSeconds: nil
         )
     }
 
-    private var sessionUnitText: String {
-        sessions.count == 1 ? "Sitzung" : "Sitzungen"
+    private var focusWinUnitText: String {
+        focusWinCount == 1 ? "Fokus-Sieg" : "Fokus-Siege"
     }
 
     private var minuteUnitText: String {
@@ -38,13 +43,13 @@ struct HistoryDayDetailView: View {
     }
 
     private var goalText: String {
-        if sessions.count >= store.dailyGoalSessions {
+        if focusWinCount >= store.dailyGoalSessions {
             return "Tagesziel erreicht"
         }
 
-        let remainingSessions = store.dailyGoalSessions - sessions.count
-        let unit = remainingSessions == 1 ? "Sitzung" : "Sitzungen"
-        return "Noch \(remainingSessions) \(unit) bis zum Ziel"
+        let remainingWins = store.dailyGoalSessions - focusWinCount
+        let unit = remainingWins == 1 ? "Fokus-Sieg" : "Fokus-Siege"
+        return "Noch \(remainingWins) \(unit) bis zum Ziel"
     }
 
     var body: some View {
@@ -63,10 +68,10 @@ struct HistoryDayDetailView: View {
 
                     Spacer()
 
-                    Text("\(min(sessions.count, store.dailyGoalSessions))/\(store.dailyGoalSessions)")
+                    Text("\(min(focusWinCount, store.dailyGoalSessions))/\(store.dailyGoalSessions)")
                         .font(.footnote.monospacedDigit())
                         .bold()
-                        .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                        .foregroundStyle(focusWinCount >= store.dailyGoalSessions ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
                 }
 
                 if sessions.isEmpty {
@@ -75,12 +80,12 @@ struct HistoryDayDetailView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(alignment: .firstTextBaseline, spacing: 18) {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("\(sessions.count)")
+                                Text("\(focusWinCount)")
                                     .font(.system(.largeTitle, design: .rounded))
                                     .monospacedDigit()
                                     .bold()
 
-                                Text(sessionUnitText)
+                                Text(focusWinUnitText)
                                     .font(.footnote)
                                     .foregroundStyle(TimerTomatoDesign.secondaryText)
                             }
@@ -102,10 +107,10 @@ struct HistoryDayDetailView: View {
 
                         Label(
                             goalText,
-                            systemImage: sessions.count >= store.dailyGoalSessions ? "checkmark.circle.fill" : "target"
+                            systemImage: focusWinCount >= store.dailyGoalSessions ? "checkmark.circle.fill" : "target"
                         )
                             .font(.footnote)
-                            .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                            .foregroundStyle(focusWinCount >= store.dailyGoalSessions ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
                     }
                 }
             }
