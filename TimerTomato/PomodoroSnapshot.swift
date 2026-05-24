@@ -9,9 +9,12 @@ import Foundation
 
 struct PomodoroSnapshot: Codable {
     var selectedMinutes: Int
+    var dailyGoalSessions: Int?
     var status: PomodoroStatus
+    var activeTimerKind: PomodoroTimerKind?
     var storedDay: Date
     var sessions: [PomodoroSession]
+    var sessionHistory: [PomodoroSession]?
     var lastCompletedAt: Date?
     var activeStartedAt: Date?
     var activeEndAt: Date?

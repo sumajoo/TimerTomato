@@ -15,6 +15,11 @@ final class PomodoroStore {
     static let minimumMinutes = 5
     static let maximumMinutes = 90
     static let minuteStep = 5
+    static let breakMinutes = 5
+    static let defaultDailyGoalSessions = 4
+    static let minimumDailyGoalSessions = 1
+    static let maximumDailyGoalSessions = 12
+    static let durationPresets = [10, 15, 25, 45, 60]
 
     var selectedMinutes = PomodoroStore.defaultMinutes {
         didSet {
@@ -33,9 +38,29 @@ final class PomodoroStore {
         }
     }
 
+    var dailyGoalSessions = PomodoroStore.defaultDailyGoalSessions {
+        didSet {
+            let clampedSessions = Self.clampedDailyGoalSessions(dailyGoalSessions)
+
+            if dailyGoalSessions != clampedSessions {
+                dailyGoalSessions = clampedSessions
+                return
+            }
+
+            guard !isRestoringSnapshot else {
+                return
+            }
+
+            persistSnapshot()
+        }
+    }
+
     private(set) var status = PomodoroStatus.idle
     private(set) var sessions: [PomodoroSession] = []
+    private(set) var sessionHistory: [PomodoroSession] = []
+    private var sessionsByDay: [Date: [PomodoroSession]] = [:]
     private(set) var currentDate: Date
+    private(set) var activeTimerKind = PomodoroTimerKind.focus
     private(set) var activeStartedAt: Date?
     private(set) var activeEndAt: Date?
     private(set) var activePlannedMinutes: Int?
@@ -62,13 +87,17 @@ final class PomodoroStore {
     }
 
     var menuBarSystemImage: String {
+        if activeTimerKind == .breakTime, status != .idle {
+            return "cup.and.saucer.fill"
+        }
+
         switch status {
         case .idle:
-            "timer"
+            return "timer"
         case .running:
-            "timer.circle.fill"
+            return "timer.circle.fill"
         case .paused:
-            "pause.circle.fill"
+            return "pause.circle.fill"
         }
     }
 
@@ -110,6 +139,58 @@ final class PomodoroStore {
         }
     }
 
+    var averagePauseSecondsToday: TimeInterval? {
+        let pauseDurations = sessions.compactMap(\.pauseBeforeSeconds)
+
+        guard !pauseDurations.isEmpty else {
+            return nil
+        }
+
+        return pauseDurations.reduce(0, +) / Double(pauseDurations.count)
+    }
+
+    var compactTodaySummaryText: String {
+        guard sessionsCompletedToday > 0 else {
+            return "0 min heute"
+        }
+
+        return "\(sessionsCompletedToday) · \(focusMinutesToday) min"
+    }
+
+    var todaySummaryText: String {
+        PomodoroFormatters.todaySummaryText(
+            sessions: sessionsCompletedToday,
+            focusMinutes: focusMinutesToday,
+            averagePauseSeconds: averagePauseSecondsToday
+        )
+    }
+
+    var dailyGoalProgress: Double {
+        guard dailyGoalSessions > 0 else {
+            return 0
+        }
+
+        return min(Double(sessionsCompletedToday) / Double(dailyGoalSessions), 1)
+    }
+
+    var dailyGoalCountText: String {
+        "\(min(sessionsCompletedToday, dailyGoalSessions))/\(dailyGoalSessions)"
+    }
+
+    var dailyGoalStatusText: String {
+        if sessionsCompletedToday >= dailyGoalSessions {
+            return "Tagesziel erreicht"
+        }
+
+        let remainingSessions = dailyGoalSessions - sessionsCompletedToday
+        let unit = remainingSessions == 1 ? "Sitzung" : "Sitzungen"
+        return "Noch \(remainingSessions) \(unit)"
+    }
+
+    var canStartBreak: Bool {
+        status == .idle && lastCompletedAt != nil
+    }
+
     init(
         defaults: UserDefaults = .standard,
         persistenceKey: String = "TimerTomato.PomodoroStore",
@@ -129,12 +210,16 @@ final class PomodoroStore {
         self.currentDate = initialDate
         self.storedDay = calendar.startOfDay(for: initialDate)
 
+        notifier.configureActionHandler { [weak self] action in
+            self?.handleNotificationAction(action)
+        }
+
         restoreSnapshot()
         refreshForToday(at: initialDate)
 
         if status == .running {
             if remainingSeconds <= 0 {
-                completeCurrentSession(at: activeEndAt ?? initialDate)
+                completeActiveTimer(at: activeEndAt ?? initialDate)
             } else {
                 scheduleTimer()
             }
@@ -149,18 +234,32 @@ final class PomodoroStore {
             return
         }
 
-        let durationSeconds = TimeInterval(selectedMinutes * 60)
+        startTimer(
+            kind: .focus,
+            minutes: selectedMinutes,
+            startDate: startDate,
+            pauseBeforeSeconds: lastCompletedAt.map { max(0, startDate.timeIntervalSince($0)) }
+        )
 
-        activeStartedAt = startDate
-        activeEndAt = startDate.addingTimeInterval(durationSeconds)
-        activePlannedMinutes = selectedMinutes
-        activePauseBeforeSeconds = lastCompletedAt.map { max(0, startDate.timeIntervalSince($0)) }
-        pausedRemainingSeconds = nil
-        status = .running
-        currentDate = startDate
+        Task {
+            await notifier.requestAuthorizationIfNeeded()
+        }
+    }
 
-        persistSnapshot()
-        scheduleTimer()
+    func startBreak() {
+        let startDate = nowProvider()
+        refreshForToday(at: startDate)
+
+        guard canStartBreak else {
+            return
+        }
+
+        startTimer(
+            kind: .breakTime,
+            minutes: Self.breakMinutes,
+            startDate: startDate,
+            pauseBeforeSeconds: nil
+        )
 
         Task {
             await notifier.requestAuthorizationIfNeeded()
@@ -203,6 +302,7 @@ final class PomodoroStore {
         timer = nil
 
         status = .idle
+        activeTimerKind = .focus
         activeStartedAt = nil
         activeEndAt = nil
         activePlannedMinutes = nil
@@ -221,8 +321,74 @@ final class PomodoroStore {
         selectedMinutes += Self.minuteStep
     }
 
+    func selectPreset(minutes: Int) {
+        selectedMinutes = minutes
+    }
+
+    func decreaseDailyGoalSessions() {
+        dailyGoalSessions -= 1
+    }
+
+    func increaseDailyGoalSessions() {
+        dailyGoalSessions += 1
+    }
+
     func refreshForToday() {
         refreshForToday(at: nowProvider())
+    }
+
+    func sessions(on date: Date) -> [PomodoroSession] {
+        sessionsByDay[dayKey(for: date)] ?? []
+    }
+
+    func historyDays(containing date: Date) -> [PomodoroHistoryDay] {
+        let weekStart = startOfWeek(containing: date)
+
+        return (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: weekStart) else {
+                return nil
+            }
+
+            let daySessions = sessions(on: day)
+
+            return PomodoroHistoryDay(
+                date: day,
+                sessions: daySessions,
+                dailyGoalSessions: dailyGoalSessions
+            )
+        }
+    }
+
+    func startOfWeek(containing date: Date) -> Date {
+        calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? calendar.startOfDay(for: date)
+    }
+
+    func dateByAddingWeeks(_ weeks: Int, to date: Date) -> Date {
+        calendar.date(byAdding: .weekOfYear, value: weeks, to: date) ?? date
+    }
+
+    func isSameDay(_ firstDate: Date, _ secondDate: Date) -> Bool {
+        calendar.isDate(firstDate, inSameDayAs: secondDate)
+    }
+
+    func dayTitle(for date: Date) -> String {
+        if calendar.isDateInToday(date) {
+            return "Heute"
+        }
+
+        return date.formatted(.dateTime.weekday(.wide).day().month(.wide))
+    }
+
+    func weekTitle(containing date: Date) -> String {
+        let days = historyDays(containing: date)
+
+        guard let firstDate = days.first?.date, let lastDate = days.last?.date else {
+            return "Diese Woche"
+        }
+
+        let first = firstDate.formatted(.dateTime.day().month(.abbreviated))
+        let last = lastDate.formatted(.dateTime.day().month(.abbreviated))
+        return "\(first) - \(last)"
     }
 
     func tick() {
@@ -232,22 +398,47 @@ final class PomodoroStore {
             return
         }
 
-        completeCurrentSession(at: activeEndAt ?? currentDate)
+        completeActiveTimer(at: activeEndAt ?? currentDate)
     }
 
     static func clampedMinutes(_ minutes: Int) -> Int {
         min(max(minutes, minimumMinutes), maximumMinutes)
     }
 
+    static func clampedDailyGoalSessions(_ sessions: Int) -> Int {
+        min(max(sessions, minimumDailyGoalSessions), maximumDailyGoalSessions)
+    }
+
+    private func startTimer(
+        kind: PomodoroTimerKind,
+        minutes: Int,
+        startDate: Date,
+        pauseBeforeSeconds: TimeInterval?
+    ) {
+        let durationSeconds = TimeInterval(minutes * 60)
+
+        activeTimerKind = kind
+        activeStartedAt = startDate
+        activeEndAt = startDate.addingTimeInterval(durationSeconds)
+        activePlannedMinutes = minutes
+        activePauseBeforeSeconds = pauseBeforeSeconds
+        pausedRemainingSeconds = nil
+        status = .running
+        currentDate = startDate
+
+        persistSnapshot()
+        scheduleTimer()
+    }
+
     private func refreshForToday(at date: Date) {
         currentDate = date
+        sessions = sessions(on: date)
+        lastCompletedAt = sessions.last?.endedAt
 
         guard !calendar.isDate(storedDay, inSameDayAs: date) else {
             return
         }
 
-        sessions = []
-        lastCompletedAt = nil
         storedDay = calendar.startOfDay(for: date)
         persistSnapshot()
     }
@@ -256,7 +447,43 @@ final class PomodoroStore {
         currentDate = nowProvider()
     }
 
-    private func completeCurrentSession(at completionDate: Date) {
+    private func dayKey(for date: Date) -> Date {
+        calendar.startOfDay(for: date)
+    }
+
+    private func rebuildSessionIndex() {
+        var index: [Date: [PomodoroSession]] = [:]
+
+        for session in sessionHistory {
+            index[dayKey(for: session.startedAt), default: []].append(session)
+        }
+
+        for key in Array(index.keys) {
+            index[key]?.sort { $0.startedAt < $1.startedAt }
+        }
+
+        sessionsByDay = index
+    }
+
+    private func appendToSessionIndex(_ session: PomodoroSession) {
+        let key = dayKey(for: session.startedAt)
+        var daySessions = sessionsByDay[key, default: []]
+
+        daySessions.append(session)
+        daySessions.sort { $0.startedAt < $1.startedAt }
+        sessionsByDay[key] = daySessions
+    }
+
+    private func completeActiveTimer(at completionDate: Date) {
+        switch activeTimerKind {
+        case .focus:
+            completeFocusSession(at: completionDate)
+        case .breakTime:
+            completeBreak(at: completionDate)
+        }
+    }
+
+    private func completeFocusSession(at completionDate: Date) {
         guard let startedAt = activeStartedAt else {
             reset()
             return
@@ -271,9 +498,12 @@ final class PomodoroStore {
             pauseBeforeSeconds: activePauseBeforeSeconds
         )
 
-        sessions.append(session)
+        sessionHistory.append(session)
+        appendToSessionIndex(session)
+        sessions = sessions(on: endedAt)
         lastCompletedAt = endedAt
         status = .idle
+        activeTimerKind = .focus
         activeStartedAt = nil
         activeEndAt = nil
         activePlannedMinutes = nil
@@ -291,6 +521,34 @@ final class PomodoroStore {
         }
     }
 
+    private func completeBreak(at completionDate: Date) {
+        guard let startedAt = activeStartedAt else {
+            reset()
+            return
+        }
+
+        let plannedMinutes = activePlannedMinutes ?? Self.breakMinutes
+        let endedAt = max(completionDate, startedAt)
+
+        status = .idle
+        activeTimerKind = .focus
+        activeStartedAt = nil
+        activeEndAt = nil
+        activePlannedMinutes = nil
+        activePauseBeforeSeconds = nil
+        pausedRemainingSeconds = nil
+        currentDate = endedAt
+
+        timer?.invalidate()
+        timer = nil
+
+        persistSnapshot()
+
+        Task {
+            await notifier.notifyBreakCompleted(plannedMinutes: plannedMinutes)
+        }
+    }
+
     private func scheduleTimer() {
         guard shouldScheduleTimer else {
             return
@@ -304,6 +562,17 @@ final class PomodoroStore {
         }
     }
 
+    private func handleNotificationAction(_ action: PomodoroNotificationAction) {
+        switch action {
+        case .done:
+            refreshForToday()
+        case .startBreak:
+            startBreak()
+        case .startNextFocus:
+            start()
+        }
+    }
+
     private func restoreSnapshot() {
         guard
             let data = defaults.data(forKey: persistenceKey),
@@ -314,8 +583,12 @@ final class PomodoroStore {
 
         isRestoringSnapshot = true
         selectedMinutes = Self.clampedMinutes(snapshot.selectedMinutes)
+        dailyGoalSessions = Self.clampedDailyGoalSessions(snapshot.dailyGoalSessions ?? Self.defaultDailyGoalSessions)
         status = snapshot.status
+        activeTimerKind = snapshot.activeTimerKind ?? .focus
         storedDay = snapshot.storedDay
+        sessionHistory = snapshot.sessionHistory ?? snapshot.sessions
+        rebuildSessionIndex()
         sessions = snapshot.sessions
         lastCompletedAt = snapshot.lastCompletedAt
         activeStartedAt = snapshot.activeStartedAt
@@ -329,9 +602,12 @@ final class PomodoroStore {
     private func persistSnapshot() {
         let snapshot = PomodoroSnapshot(
             selectedMinutes: selectedMinutes,
+            dailyGoalSessions: dailyGoalSessions,
             status: status,
+            activeTimerKind: activeTimerKind,
             storedDay: storedDay,
             sessions: sessions,
+            sessionHistory: sessionHistory,
             lastCompletedAt: lastCompletedAt,
             activeStartedAt: activeStartedAt,
             activeEndAt: activeEndAt,

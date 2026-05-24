@@ -9,9 +9,15 @@ import SwiftUI
 
 struct TimerProgressBarView: View {
     let progress: Double
+    let tint: Color
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
+    }
+
+    init(progress: Double, tint: Color = TimerTomatoDesign.tomato) {
+        self.progress = progress
+        self.tint = tint
     }
 
     var body: some View {
@@ -22,7 +28,7 @@ struct TimerProgressBarView: View {
 
                 if clampedProgress > 0 {
                     Capsule()
-                        .fill(TimerTomatoDesign.tomato)
+                        .fill(tint)
                         .frame(width: proxy.size.width * clampedProgress)
                 }
             }

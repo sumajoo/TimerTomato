@@ -10,19 +10,34 @@ import SwiftUI
 
 struct MenuBarHeaderView: View {
     let store: PomodoroStore
+    let showHistory: () -> Void
 
     var body: some View {
         HStack(alignment: .center) {
-            Label("TimerTomato", systemImage: "timer")
+            Label {
+                Text("TimerTomato")
+            } icon: {
+                Text("🍅")
+                    .font(.title3)
+                    .accessibilityHidden(true)
+            }
                 .font(.headline)
                 .labelStyle(.titleAndIcon)
-                .imageScale(.medium)
 
             Spacer()
 
-            Text("\(store.focusMinutesToday) min heute")
+            Text(store.compactTodaySummaryText)
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
+
+            Button("Verlauf", systemImage: "calendar", action: showHistory)
+                .labelStyle(.iconOnly)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .frame(width: 32, height: 32)
+                .contentShape(Circle())
+                .buttonStyle(.plain)
+                .help("Verlauf öffnen")
 
             Button("Beenden", systemImage: "power", action: quit)
                 .labelStyle(.iconOnly)

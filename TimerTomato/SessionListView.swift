@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct SessionListView: View {
-    let sessions: [PomodoroSession]
+    let store: PomodoroStore
+
+    private var sessions: [PomodoroSession] {
+        store.sessions
+    }
 
     private var visibleSessions: [PomodoroSession] {
         Array(sessions.reversed().prefix(4))
@@ -23,10 +27,12 @@ struct SessionListView: View {
                 .imageScale(.small)
                 .padding(.horizontal, 4)
 
+            TodayStatsView(store: store)
+
             if sessions.isEmpty {
                 SessionEmptyStateView()
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 14) {
                     ForEach(visibleSessions) { session in
                         SessionRowView(session: session)
                     }

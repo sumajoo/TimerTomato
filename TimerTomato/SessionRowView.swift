@@ -41,10 +41,30 @@ struct SessionRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
+        .background {
+            RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
+                .fill(TimerTomatoDesign.surfaceFill)
+        }
         .glassEffect(
             .regular,
             in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            TimerTomatoDesign.surfaceHighlight,
+                            TimerTomatoDesign.surfaceMidline,
+                            TimerTomatoDesign.surfaceLowlight
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.65
+                )
+        }
+        .shadow(color: TimerTomatoDesign.panelShadow, radius: 14, x: 0, y: 8)
         .accessibilityElement(children: .combine)
     }
 }

@@ -10,14 +10,18 @@ import SwiftUI
 struct TimerStatusView: View {
     let store: PomodoroStore
 
+    private var accentColor: Color {
+        store.activeTimerKind == .breakTime ? TimerTomatoDesign.mint : TimerTomatoDesign.tomato
+    }
+
     private var statusText: String {
         switch store.status {
         case .idle:
-            "Bereit für Fokus"
+            store.canStartBreak ? "Bereit für Fokus oder Pause" : "Bereit für Fokus"
         case .running:
-            "Im Fokus"
+            store.activeTimerKind == .breakTime ? "Pause läuft" : "Im Fokus"
         case .paused:
-            "Fokus pausiert"
+            store.activeTimerKind == .breakTime ? "Pause pausiert" : "Fokus pausiert"
         }
     }
 
@@ -35,7 +39,7 @@ struct TimerStatusView: View {
                     .foregroundStyle(.secondary)
             }
 
-            TimerProgressBarView(progress: store.progress)
+            TimerProgressBarView(progress: store.progress, tint: accentColor)
 
             TimerControlsView(store: store)
         }
@@ -43,9 +47,29 @@ struct TimerStatusView: View {
         .padding(.horizontal, 20)
         .padding(.top, 22)
         .padding(.bottom, 18)
+        .background {
+            RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
+                .fill(TimerTomatoDesign.surfaceFill)
+        }
         .glassEffect(
             .regular,
             in: .rect(cornerRadius: TimerTomatoDesign.heroCornerRadius)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            TimerTomatoDesign.surfaceHighlight,
+                            TimerTomatoDesign.surfaceMidline,
+                            TimerTomatoDesign.surfaceLowlight
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.9
+                )
+        }
+        .shadow(color: TimerTomatoDesign.heroShadow, radius: 28, x: 0, y: 18)
     }
 }
