@@ -38,7 +38,8 @@ struct HistoryWeekCalendarView: View {
                     }
                 }
             }
-            .padding(4)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
             .frame(maxWidth: .infinity)
             .timerTomatoCard(.panel)
         }

@@ -27,35 +27,57 @@ struct HistoryDayCellView: View {
 
     var body: some View {
         Button(action: select) {
-            content
+            baseContent
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
         .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.sessionCount) Sitzungen")
         .accessibilityHint("Der Balken zeigt den Fortschritt zum Tagesziel.")
         .help("Tagesziel-Fortschritt")
     }
 
     @ViewBuilder
-    private var content: some View {
+    private var dayNumber: some View {
         if isSelected {
-            baseContent
-                .timerTomatoCard(.row, isInteractive: true)
+            Text(dayText)
+                .font(.callout.monospacedDigit())
+                .bold()
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3)
+                .background {
+                    Capsule()
+                        .fill(TimerTomatoDesign.surfaceFill)
+                        .overlay {
+                            Capsule()
+                                .fill(TimerTomatoDesign.mint.opacity(0.12))
+                        }
+                }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .capsule
+                )
+                .overlay {
+                    Capsule()
+                        .stroke(TimerTomatoDesign.mint.opacity(0.28), lineWidth: TimerTomatoDesign.cardBorderWidth)
+                        .allowsHitTesting(false)
+                }
                 .glassEffectID("history-day-selection", in: glassNamespace)
         } else {
-            baseContent
+            Text(dayText)
+                .font(.callout.monospacedDigit())
+                .bold()
+                .padding(.vertical, 3)
         }
     }
 
     private var baseContent: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 4) {
             Text(weekdayText)
                 .font(.footnote)
-                .foregroundStyle(TimerTomatoDesign.secondaryText)
+                .foregroundStyle(isSelected ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
 
-            Text(dayText)
-                .font(.callout.monospacedDigit())
-                .bold()
+            dayNumber
 
             ZStack(alignment: .leading) {
                 Capsule()
@@ -70,13 +92,14 @@ struct HistoryDayCellView: View {
                 }
             }
             .frame(height: 3)
+            .frame(width: 42)
 
             Text(day.sessionCount == 0 ? "-" : "\(day.sessionCount)")
                 .font(.footnote.monospacedDigit())
                 .foregroundStyle(day.sessionCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
         }
         .padding(.horizontal, 4)
-        .frame(maxWidth: .infinity, minHeight: 58)
+        .frame(maxWidth: .infinity, minHeight: 62)
     }
 }
 
