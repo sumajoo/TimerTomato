@@ -10,6 +10,7 @@ import Foundation
 struct PomodoroSnapshot: Codable {
     var selectedMinutes: Int
     var dailyGoalSessions: Int?
+    var weeklyGoalSessions: Int?
     var status: PomodoroStatus
     var activeTimerKind: PomodoroTimerKind?
     var storedDay: Date

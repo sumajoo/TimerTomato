@@ -51,6 +51,13 @@ enum TimerTomatoPreviewData {
 
     static var historySessions: [PomodoroSession] {
         [
+            session(day: 4, startHour: 9, startMinute: 0, pauseBeforeSeconds: nil),
+            session(day: 4, startHour: 9, startMinute: 35, pauseBeforeSeconds: 10 * 60),
+            session(day: 5, startHour: 11, startMinute: 0, pauseBeforeSeconds: nil),
+            session(day: 11, startHour: 8, startMinute: 45, pauseBeforeSeconds: nil),
+            session(day: 11, startHour: 9, startMinute: 20, pauseBeforeSeconds: 10 * 60),
+            session(day: 12, startHour: 14, startMinute: 0, pauseBeforeSeconds: nil),
+            session(day: 12, startHour: 14, startMinute: 35, pauseBeforeSeconds: 10 * 60),
             session(day: 18, startHour: 9, startMinute: 0, pauseBeforeSeconds: nil),
             session(day: 19, startHour: 10, startMinute: 0, pauseBeforeSeconds: nil),
             session(day: 19, startHour: 10, startMinute: 35, pauseBeforeSeconds: 10 * 60),

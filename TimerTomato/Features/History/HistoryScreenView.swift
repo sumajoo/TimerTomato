@@ -27,6 +27,11 @@ struct HistoryScreenView: View {
                 store: store
             )
 
+            HistoryWeekSummaryView(
+                store: store,
+                selectedDate: selectedDate
+            )
+
             HistoryDayDetailView(
                 store: store,
                 selectedDate: selectedDate

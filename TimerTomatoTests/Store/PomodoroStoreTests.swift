@@ -65,6 +65,25 @@ struct TimerTomatoTests {
         #expect(restored.dailyGoalSessions == 1)
     }
 
+    @Test func weeklyGoalInitializesPersistsAndClamps() async {
+        let defaults = makeDefaults()
+        let store = makeStore(defaults: defaults)
+
+        #expect(store.weeklyGoalSessions == 20)
+
+        store.weeklyGoalSessions = 200
+        #expect(store.weeklyGoalSessions == 84)
+
+        var restored = makeStore(defaults: defaults)
+        #expect(restored.weeklyGoalSessions == 84)
+
+        restored.weeklyGoalSessions = 0
+        #expect(restored.weeklyGoalSessions == 1)
+
+        restored = makeStore(defaults: defaults)
+        #expect(restored.weeklyGoalSessions == 1)
+    }
+
     @Test func completedSessionIsRecorded() async {
         let defaults = makeDefaults()
         let notifier = TestPomodoroNotifier()
@@ -215,6 +234,111 @@ struct TimerTomatoTests {
         #expect(secondDay?.focusMinutes == 50)
     }
 
+    @Test func weeklyGoalSuggestionUsesCompletedWeeksOnly() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            makeSessions(day: 1, count: 6)
+                + makeSessions(day: 4, count: 8)
+                + makeSessions(day: 11, count: 10)
+                + makeSessions(day: 18, count: 20),
+            in: modelContainer
+        )
+
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 24, hour: 12, minute: 0) }
+        )
+
+        #expect(store.weeklyGoalSuggestionSessions == 9)
+        #expect(store.weeklyGoalSessions == 9)
+    }
+
+    @Test func weekSummaryCalculatesProgressAndFocusMinutes() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(day: 18, startHour: 9, startMinute: 0, durationMinutes: 45),
+                session(day: 18, startHour: 10, startMinute: 0, durationMinutes: 30),
+                session(day: 19, startHour: 11, startMinute: 0, durationMinutes: 25)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 24, hour: 12, minute: 0) }
+        )
+
+        store.weeklyGoalSessions = 6
+        let summary = store.weekSummary(containing: date(day: 24, hour: 12, minute: 0))
+
+        #expect(summary.sessionCount == 3)
+        #expect(summary.focusMinutes == 100)
+        #expect(summary.goalProgress == 0.5)
+        #expect(summary.goalCountText == "3/6")
+        #expect(summary.didReachGoal == false)
+    }
+
+    @Test func streakCountsReachedDailyGoalsWithoutBreakingOnIncompleteToday() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            makeSessions(day: 20, count: 2)
+                + makeSessions(day: 21, count: 2)
+                + makeSessions(day: 22, count: 1)
+                + makeSessions(day: 23, count: 2)
+                + makeSessions(day: 24, count: 1),
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 24, hour: 12, minute: 0) }
+        )
+
+        store.dailyGoalSessions = 2
+
+        #expect(store.streakSummary.currentDays == 1)
+        #expect(store.streakSummary.bestDays == 2)
+        #expect(store.streakSummary.latestGoalDate == date(day: 23, hour: 0, minute: 0))
+    }
+
+    @Test func bestFocusDaysSortByMinutesSessionsThenNewestDate() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(day: 10, startHour: 9, startMinute: 0, durationMinutes: 30),
+                session(day: 10, startHour: 10, startMinute: 0, durationMinutes: 30),
+                session(day: 10, startHour: 11, startMinute: 0, durationMinutes: 30),
+                session(day: 11, startHour: 9, startMinute: 0, durationMinutes: 50),
+                session(day: 11, startHour: 10, startMinute: 0, durationMinutes: 50),
+                session(day: 12, startHour: 9, startMinute: 0, durationMinutes: 25),
+                session(day: 12, startHour: 10, startMinute: 0, durationMinutes: 25),
+                session(day: 12, startHour: 11, startMinute: 0, durationMinutes: 25),
+                session(day: 12, startHour: 12, startMinute: 0, durationMinutes: 25)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 24, hour: 12, minute: 0) }
+        )
+        let bestDays = store.bestFocusDays(limit: 3)
+
+        #expect(bestDays.map(\.date) == [
+            date(day: 12, hour: 0, minute: 0),
+            date(day: 11, hour: 0, minute: 0),
+            date(day: 10, hour: 0, minute: 0)
+        ])
+        #expect(bestDays.map(\.focusMinutes) == [100, 100, 90])
+        #expect(bestDays.map(\.sessionCount) == [4, 2, 3])
+    }
+
     @Test func historyLookupRestoresAcrossStoreInstances() async {
         let defaults = makeDefaults()
         let modelContainer = makeModelContainer()
@@ -260,6 +384,7 @@ struct TimerTomatoTests {
         let snapshot = PomodoroSnapshot(
             selectedMinutes: 25,
             dailyGoalSessions: 4,
+            weeklyGoalSessions: nil,
             status: .idle,
             activeTimerKind: .focus,
             storedDay: date(day: 18, hour: 0, minute: 0),
@@ -452,9 +577,51 @@ struct TimerTomatoTests {
         }
     }
 
+    private func seedSessions(_ sessions: [PomodoroSession], in modelContainer: ModelContainer) {
+        let context = modelContainer.mainContext
+
+        sessions.forEach { session in
+            context.insert(PomodoroSessionRecord(session: session))
+        }
+
+        do {
+            try context.save()
+        } catch {
+            fatalError("Could not seed test sessions: \(error)")
+        }
+    }
+
+    private func makeSessions(day: Int, count: Int) -> [PomodoroSession] {
+        (0..<count).map { index in
+            session(
+                day: day,
+                startHour: 8 + (index / 2),
+                startMinute: (index % 2) * 30
+            )
+        }
+    }
+
+    private func session(
+        day: Int,
+        startHour: Int,
+        startMinute: Int,
+        durationMinutes: Int = PomodoroStore.defaultMinutes
+    ) -> PomodoroSession {
+        let startedAt = date(day: day, hour: startHour, minute: startMinute)
+        let endedAt = testCalendar.date(byAdding: .minute, value: durationMinutes, to: startedAt) ?? startedAt
+
+        return PomodoroSession(
+            startedAt: startedAt,
+            endedAt: endedAt,
+            plannedMinutes: durationMinutes,
+            pauseBeforeSeconds: nil
+        )
+    }
+
     private var testCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.firstWeekday = 2
         return calendar
     }
 

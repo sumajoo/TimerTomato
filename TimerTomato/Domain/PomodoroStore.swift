@@ -21,6 +21,9 @@ final class PomodoroStore {
     static let defaultDailyGoalSessions = 4
     static let minimumDailyGoalSessions = 1
     static let maximumDailyGoalSessions = 12
+    static let defaultWeeklyGoalSessions = defaultDailyGoalSessions * 5
+    static let minimumWeeklyGoalSessions = 1
+    static let maximumWeeklyGoalSessions = maximumDailyGoalSessions * 7
     static let durationPresets = [10, 15, 25, 45, 60]
 
     var selectedMinutes = PomodoroStore.defaultMinutes {
@@ -57,6 +60,23 @@ final class PomodoroStore {
         }
     }
 
+    var weeklyGoalSessions = PomodoroStore.defaultWeeklyGoalSessions {
+        didSet {
+            let clampedSessions = Self.clampedWeeklyGoalSessions(weeklyGoalSessions)
+
+            if weeklyGoalSessions != clampedSessions {
+                weeklyGoalSessions = clampedSessions
+                return
+            }
+
+            guard !isRestoringSnapshot else {
+                return
+            }
+
+            persistSnapshot()
+        }
+    }
+
     private(set) var status = PomodoroStatus.idle
     private(set) var sessions: [PomodoroSession] = []
     private(set) var currentDate: Date
@@ -80,6 +100,7 @@ final class PomodoroStore {
     @ObservationIgnored private var storedDay: Date
     @ObservationIgnored private var lastCompletedAt: Date?
     @ObservationIgnored private var isRestoringSnapshot = false
+    @ObservationIgnored private var didRestoreWeeklyGoal = false
 
     var menuBarTitle: String {
         remainingClockText
@@ -194,6 +215,18 @@ final class PomodoroStore {
         return "Noch \(remainingSessions) \(unit)"
     }
 
+    var currentWeekSummary: PomodoroWeekSummary {
+        weekSummary(containing: currentDate)
+    }
+
+    var weeklyGoalSuggestionSessions: Int {
+        suggestedWeeklyGoalSessions()
+    }
+
+    var streakSummary: PomodoroStreakSummary {
+        streakSummary(endingAt: currentDate)
+    }
+
     var canStartBreak: Bool {
         status == .idle && lastCompletedAt != nil
     }
@@ -234,6 +267,7 @@ final class PomodoroStore {
         }
 
         restoreSnapshot()
+        initializeWeeklyGoalIfNeeded()
         refreshLifecycleState(at: initialDate)
     }
 
@@ -338,6 +372,18 @@ final class PomodoroStore {
         dailyGoalSessions += 1
     }
 
+    func decreaseWeeklyGoalSessions() {
+        weeklyGoalSessions -= 1
+    }
+
+    func increaseWeeklyGoalSessions() {
+        weeklyGoalSessions += 1
+    }
+
+    func acceptWeeklyGoalSuggestion() {
+        weeklyGoalSessions = weeklyGoalSuggestionSessions
+    }
+
     func refreshForToday() {
         refreshForToday(at: nowProvider())
     }
@@ -375,6 +421,18 @@ final class PomodoroStore {
                 dailyGoalSessions: dailyGoalSessions
             )
         }
+    }
+
+    func weekSummary(containing date: Date) -> PomodoroWeekSummary {
+        PomodoroWeekSummary(
+            startDate: startOfWeek(containing: date),
+            days: historyDays(containing: date),
+            weeklyGoalSessions: weeklyGoalSessions
+        )
+    }
+
+    func bestFocusDays(limit: Int) -> [PomodoroBestFocusDay] {
+        Array(dailySummaries().prefix(limit))
     }
 
     func startOfWeek(containing date: Date) -> Date {
@@ -425,6 +483,10 @@ final class PomodoroStore {
 
     static func clampedDailyGoalSessions(_ sessions: Int) -> Int {
         min(max(sessions, minimumDailyGoalSessions), maximumDailyGoalSessions)
+    }
+
+    static func clampedWeeklyGoalSessions(_ sessions: Int) -> Int {
+        min(max(sessions, minimumWeeklyGoalSessions), maximumWeeklyGoalSessions)
     }
 
     private func startTimer(
@@ -638,6 +700,8 @@ final class PomodoroStore {
         isRestoringSnapshot = true
         selectedMinutes = Self.clampedMinutes(snapshot.selectedMinutes)
         dailyGoalSessions = Self.clampedDailyGoalSessions(snapshot.dailyGoalSessions ?? Self.defaultDailyGoalSessions)
+        weeklyGoalSessions = Self.clampedWeeklyGoalSessions(snapshot.weeklyGoalSessions ?? Self.defaultWeeklyGoalSessions)
+        didRestoreWeeklyGoal = snapshot.weeklyGoalSessions != nil
         status = snapshot.status
         activeTimerKind = snapshot.activeTimerKind ?? .focus
         storedDay = snapshot.storedDay
@@ -658,6 +722,7 @@ final class PomodoroStore {
         let snapshot = PomodoroSnapshot(
             selectedMinutes: selectedMinutes,
             dailyGoalSessions: dailyGoalSessions,
+            weeklyGoalSessions: weeklyGoalSessions,
             status: status,
             activeTimerKind: activeTimerKind,
             storedDay: storedDay,
@@ -677,6 +742,112 @@ final class PomodoroStore {
         }
 
         defaults.set(data, forKey: persistenceKey)
+    }
+
+    private func initializeWeeklyGoalIfNeeded() {
+        guard !didRestoreWeeklyGoal else {
+            return
+        }
+
+        didRestoreWeeklyGoal = true
+        weeklyGoalSessions = weeklyGoalSuggestionSessions
+    }
+
+    private func suggestedWeeklyGoalSessions() -> Int {
+        let currentWeekStart = startOfWeek(containing: currentDate)
+        let recentCompletedWeekCounts = (1...4).compactMap { offset -> Int? in
+            guard
+                let weekStart = calendar.date(byAdding: .weekOfYear, value: -offset, to: currentWeekStart),
+                let weekEnd = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart)
+            else {
+                return nil
+            }
+
+            let sessionCount = fetchSessions(startingAt: weekStart, before: weekEnd).count
+            return sessionCount > 0 ? sessionCount : nil
+        }
+
+        guard !recentCompletedWeekCounts.isEmpty else {
+            return Self.clampedWeeklyGoalSessions(dailyGoalSessions * 5)
+        }
+
+        let totalSessions = recentCompletedWeekCounts.reduce(0, +)
+        let averageSessions = Double(totalSessions) / Double(recentCompletedWeekCounts.count)
+        return Self.clampedWeeklyGoalSessions(Int(ceil(averageSessions * 1.10)))
+    }
+
+    private func streakSummary(endingAt date: Date) -> PomodoroStreakSummary {
+        let goalDays = Set(
+            dailySummaries()
+                .filter { $0.sessionCount >= dailyGoalSessions }
+                .map(\.date)
+        )
+        let today = dayKey(for: date)
+        let currentAnchor = goalDays.contains(today) ? today : previousDay(before: today)
+
+        var currentDays = 0
+        var cursor = currentAnchor
+
+        while goalDays.contains(cursor) {
+            currentDays += 1
+            cursor = previousDay(before: cursor)
+        }
+
+        var bestDays = 0
+        var runningDays = 0
+        var previousGoalDay: Date?
+
+        for goalDay in goalDays.sorted() {
+            if let previousGoalDay, isSameDay(goalDay, nextDay(after: previousGoalDay)) {
+                runningDays += 1
+            } else {
+                runningDays = 1
+            }
+
+            bestDays = max(bestDays, runningDays)
+            previousGoalDay = goalDay
+        }
+
+        return PomodoroStreakSummary(
+            currentDays: currentDays,
+            bestDays: bestDays,
+            latestGoalDate: currentDays > 0 ? currentAnchor : nil
+        )
+    }
+
+    private func dailySummaries() -> [PomodoroBestFocusDay] {
+        Dictionary(grouping: fetchPersistedSessions()) { session in
+            dayKey(for: session.startedAt)
+        }
+        .map { day, sessions in
+            PomodoroBestFocusDay(
+                date: day,
+                sessionCount: sessions.count,
+                focusMinutes: sessions.reduce(0) { result, session in
+                    result + session.plannedMinutes
+                }
+            )
+        }
+        .filter { $0.sessionCount > 0 }
+        .sorted { first, second in
+            if first.focusMinutes != second.focusMinutes {
+                return first.focusMinutes > second.focusMinutes
+            }
+
+            if first.sessionCount != second.sessionCount {
+                return first.sessionCount > second.sessionCount
+            }
+
+            return first.date > second.date
+        }
+    }
+
+    private func previousDay(before date: Date) -> Date {
+        calendar.date(byAdding: .day, value: -1, to: date) ?? date
+    }
+
+    private func nextDay(after date: Date) -> Date {
+        calendar.date(byAdding: .day, value: 1, to: date) ?? date
     }
 
     private func refreshLifecycleState(at date: Date) {

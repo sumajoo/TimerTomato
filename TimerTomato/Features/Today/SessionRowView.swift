@@ -20,7 +20,7 @@ struct SessionRowView: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.title3)
-                .foregroundStyle(TimerTomatoDesign.success)
+                .foregroundStyle(TimerTomatoDesign.mint)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {

@@ -29,6 +29,8 @@ struct SessionListView: View {
 
             TodayStatsView(store: store)
 
+            WeeklyMotivationCardView(store: store)
+
             if sessions.isEmpty {
                 GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
                     SessionEmptyStateView()
