@@ -11,24 +11,24 @@ struct SessionEmptyStateView: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: "timer")
-                .font(.title3)
+                .font(.body)
                 .foregroundStyle(.tertiary)
                 .accessibilityHidden(true)
 
-            Text("Noch keine Sitzungen")
-                .font(.subheadline)
+            Text("Noch keine Sitzungen heute")
+                .font(.callout)
                 .bold()
 
-            Text("Starte deinen ersten Pomodoro.")
+            Text("Starte deinen ersten Fokusblock.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
+        .padding(.vertical, 18)
         .padding(.horizontal, 12)
         .glassEffect(
-            .regular.tint(TimerTomatoDesign.neutralTint),
-            in: .rect(cornerRadius: TimerTomatoDesign.controlCornerRadius)
+            .regular,
+            in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
         )
         .accessibilityElement(children: .combine)
     }

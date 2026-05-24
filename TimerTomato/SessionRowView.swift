@@ -42,7 +42,7 @@ struct SessionRowView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .glassEffect(
-            .regular.tint(TimerTomatoDesign.neutralTint),
+            .regular,
             in: .rect(cornerRadius: TimerTomatoDesign.rowCornerRadius)
         )
         .accessibilityElement(children: .combine)

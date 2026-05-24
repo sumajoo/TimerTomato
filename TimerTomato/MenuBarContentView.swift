@@ -14,25 +14,21 @@ struct MenuBarContentView: View {
 
     var body: some View {
         GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
-            VStack(spacing: TimerTomatoDesign.panelSpacing) {
+            VStack(spacing: 0) {
                 MenuBarHeaderView(store: store)
+
                 TimerStatusView(store: store)
+                    .padding(.top, 14)
+
                 DurationControlView(store: store)
+                    .padding(.top, 12)
+
                 SessionListView(sessions: store.sessions)
+                    .padding(.top, 18)
             }
-            .padding(16)
+            .padding(TimerTomatoDesign.contentPadding)
         }
         .frame(width: TimerTomatoDesign.contentWidth)
-        .background {
-            LinearGradient(
-                colors: [
-                    TimerTomatoDesign.backgroundTop,
-                    TimerTomatoDesign.backgroundBottom
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
         .onAppear(perform: store.refreshForToday)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.status)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.sessionsCompletedToday)

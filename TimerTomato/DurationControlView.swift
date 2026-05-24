@@ -10,53 +10,59 @@ import SwiftUI
 struct DurationControlView: View {
     @Bindable var store: PomodoroStore
 
-    private var detailText: String {
-        if store.status == .idle {
-            return "Dauer der nächsten Sitzung"
-        }
-
-        return "Gilt ab der nächsten Sitzung"
+    private var showsDetailText: Bool {
+        store.status != .idle
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text("Fokusdauer")
                     .font(.subheadline)
                     .bold()
 
-                Text(detailText)
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
+                if showsDetailText {
+                    Text("Ab nächster Sitzung")
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .layoutPriority(1)
 
             Spacer()
 
-            HStack(spacing: 8) {
+            HStack(spacing: 4) {
                 Button("Kürzer", systemImage: "minus", action: store.decreaseSelectedMinutes)
                     .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30, height: 30)
+                    .contentShape(Circle())
                     .disabled(store.selectedMinutes <= PomodoroStore.minimumMinutes)
                     .help("Fokusdauer verkürzen")
 
                 Text(PomodoroFormatters.minutesText(store.selectedMinutes))
                     .font(.headline.monospacedDigit())
-                    .frame(minWidth: 54)
+                    .frame(minWidth: 58)
 
                 Button("Länger", systemImage: "plus", action: store.increaseSelectedMinutes)
                     .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 30, height: 30)
+                    .contentShape(Circle())
                     .disabled(store.selectedMinutes >= PomodoroStore.maximumMinutes)
                     .help("Fokusdauer verlängern")
             }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 5)
+            .glassEffect(
+                .regular,
+                in: .capsule
+            )
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .tint(TimerTomatoDesign.tomato)
-        .glassEffect(
-            .regular.tint(TimerTomatoDesign.surfaceTint),
-            in: .rect(cornerRadius: TimerTomatoDesign.controlCornerRadius)
-        )
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
     }
 }

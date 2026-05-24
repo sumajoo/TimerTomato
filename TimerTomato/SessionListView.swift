@@ -15,11 +15,13 @@ struct SessionListView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Label("Heute", systemImage: "calendar")
-                .font(.subheadline)
+                .font(.callout)
                 .bold()
                 .foregroundStyle(.secondary)
+                .imageScale(.small)
+                .padding(.horizontal, 4)
 
             if sessions.isEmpty {
                 SessionEmptyStateView()

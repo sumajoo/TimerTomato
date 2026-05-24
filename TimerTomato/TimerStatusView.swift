@@ -13,37 +13,39 @@ struct TimerStatusView: View {
     private var statusText: String {
         switch store.status {
         case .idle:
-            "Fokus · bereit"
+            "Bereit für Fokus"
         case .running:
-            "Fokus · läuft"
+            "Im Fokus"
         case .paused:
-            "Fokus · pausiert"
+            "Fokus pausiert"
         }
     }
 
     var body: some View {
-        VStack(spacing: 14) {
-            Text(store.remainingClockText)
-                .font(.system(.largeTitle, design: .rounded).monospacedDigit())
-                .bold()
-                .contentTransition(.numericText())
-                .accessibilityLabel("Verbleibende Zeit \(store.remainingClockText)")
+        VStack(spacing: 17) {
+            VStack(spacing: 4) {
+                Text(store.remainingClockText)
+                    .font(.system(.largeTitle, design: .rounded).monospacedDigit())
+                    .bold()
+                    .contentTransition(.numericText())
+                    .accessibilityLabel("Verbleibende Zeit \(store.remainingClockText)")
 
-            Label(statusText, systemImage: store.menuBarSystemImage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                Text(statusText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
 
             TimerProgressBarView(progress: store.progress)
 
             TimerControlsView(store: store)
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 18)
-        .tint(TimerTomatoDesign.tomato)
+        .padding(.horizontal, 20)
+        .padding(.top, 22)
+        .padding(.bottom, 18)
         .glassEffect(
-            .regular.tint(TimerTomatoDesign.timerTint),
-            in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+            .regular,
+            in: .rect(cornerRadius: TimerTomatoDesign.heroCornerRadius)
         )
     }
 }

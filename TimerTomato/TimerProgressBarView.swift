@@ -18,7 +18,7 @@ struct TimerProgressBarView: View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(.quaternary)
+                    .fill(.tertiary)
 
                 if clampedProgress > 0 {
                     Capsule()
@@ -27,7 +27,7 @@ struct TimerProgressBarView: View {
                 }
             }
         }
-        .frame(height: 8)
+        .frame(height: 9)
         .accessibilityLabel("Fortschritt")
         .accessibilityValue("\(Int((clampedProgress * 100).rounded())) Prozent")
     }
