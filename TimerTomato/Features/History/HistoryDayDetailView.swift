@@ -58,7 +58,7 @@ struct HistoryDayDetailView: View {
 
                         Text(sessions.isEmpty ? "Keine Sitzungen" : summaryText)
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(TimerTomatoDesign.secondaryText)
                     }
 
                     Spacer()
@@ -66,7 +66,7 @@ struct HistoryDayDetailView: View {
                     Text("\(min(sessions.count, store.dailyGoalSessions))/\(store.dailyGoalSessions)")
                         .font(.footnote.monospacedDigit())
                         .bold()
-                        .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : .secondary)
+                        .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
                 }
 
                 if sessions.isEmpty {
@@ -82,7 +82,7 @@ struct HistoryDayDetailView: View {
 
                                 Text(sessionUnitText)
                                     .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(TimerTomatoDesign.secondaryText)
                             }
 
                             Divider()
@@ -96,7 +96,7 @@ struct HistoryDayDetailView: View {
 
                                 Text(minuteUnitText)
                                     .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(TimerTomatoDesign.secondaryText)
                             }
                         }
 
@@ -105,7 +105,7 @@ struct HistoryDayDetailView: View {
                             systemImage: sessions.count >= store.dailyGoalSessions ? "checkmark.circle.fill" : "target"
                         )
                             .font(.footnote)
-                            .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : .secondary)
+                            .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
                     }
                 }
             }

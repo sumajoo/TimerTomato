@@ -24,7 +24,7 @@ struct TimerProgressBarView: View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(.tertiary)
+                    .fill(TimerTomatoDesign.trackFill)
 
                 if clampedProgress > 0 {
                     Capsule()

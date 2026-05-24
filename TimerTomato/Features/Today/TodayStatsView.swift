@@ -19,14 +19,14 @@ struct TodayStatsView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(store.todaySummaryText)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TimerTomatoDesign.secondaryText)
 
                 Spacer(minLength: 10)
 
                 Text(store.dailyGoalCountText)
                     .font(.footnote.monospacedDigit())
                     .bold()
-                    .foregroundStyle(goalProgress >= 1 ? TimerTomatoDesign.mint : .secondary)
+                    .foregroundStyle(goalProgress >= 1 ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
             }
 
             TimerProgressBarView(progress: goalProgress, tint: TimerTomatoDesign.mint)
@@ -40,7 +40,7 @@ struct TodayStatsView: View {
 
                     Text(store.dailyGoalStatusText)
                         .font(.footnote)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(TimerTomatoDesign.tertiaryText)
                 }
 
                 Spacer()
@@ -49,7 +49,7 @@ struct TodayStatsView: View {
                     Button("Tagesziel senken", systemImage: "minus", action: store.decreaseDailyGoalSessions)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
                         .frame(width: 26, height: 26)
                         .contentShape(Circle())
                         .disabled(store.dailyGoalSessions <= PomodoroStore.minimumDailyGoalSessions)
@@ -63,7 +63,7 @@ struct TodayStatsView: View {
                     Button("Tagesziel erhöhen", systemImage: "plus", action: store.increaseDailyGoalSessions)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
                         .frame(width: 26, height: 26)
                         .contentShape(Circle())
                         .disabled(store.dailyGoalSessions >= PomodoroStore.maximumDailyGoalSessions)

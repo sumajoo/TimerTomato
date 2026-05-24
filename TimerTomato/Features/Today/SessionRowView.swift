@@ -30,14 +30,14 @@ struct SessionRowView: View {
 
                 Text(timeRangeText)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TimerTomatoDesign.secondaryText)
             }
 
             Spacer()
 
             Text(PomodoroFormatters.pauseText(seconds: session.pauseBeforeSeconds))
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

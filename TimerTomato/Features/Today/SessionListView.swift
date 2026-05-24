@@ -23,7 +23,7 @@ struct SessionListView: View {
             Label("Heute", systemImage: "calendar")
                 .font(.callout)
                 .bold()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
                 .imageScale(.small)
                 .padding(.horizontal, 4)
 

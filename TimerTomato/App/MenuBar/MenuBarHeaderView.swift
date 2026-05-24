@@ -28,12 +28,12 @@ struct MenuBarHeaderView: View {
 
             Text(store.compactTodaySummaryText)
                 .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
 
             Button("Verlauf", systemImage: "calendar", action: showHistory)
                 .labelStyle(.iconOnly)
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
                 .buttonStyle(.plain)
@@ -42,7 +42,7 @@ struct MenuBarHeaderView: View {
             Button("Beenden", systemImage: "power", action: quit)
                 .labelStyle(.iconOnly)
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
                 .buttonStyle(.plain)

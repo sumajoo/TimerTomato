@@ -37,7 +37,7 @@ struct TimerStatusView: View {
 
                     Text(statusText)
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
                 }
 
                 TimerProgressBarView(progress: store.progress, tint: accentColor)

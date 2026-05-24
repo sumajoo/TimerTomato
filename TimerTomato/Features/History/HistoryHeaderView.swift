@@ -18,7 +18,7 @@ struct HistoryHeaderView: View {
             Button("Zurück", systemImage: "chevron.left", action: onBack)
                 .labelStyle(.iconOnly)
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
                 .frame(width: 32, height: 32)
                 .contentShape(Circle())
                 .buttonStyle(.plain)
@@ -31,7 +31,7 @@ struct HistoryHeaderView: View {
 
                 Text(store.weekTitle(containing: selectedDate))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TimerTomatoDesign.secondaryText)
             }
 
             Spacer()

@@ -51,7 +51,7 @@ struct HistoryDayCellView: View {
         VStack(spacing: 5) {
             Text(weekdayText)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
 
             Text(dayText)
                 .font(.callout.monospacedDigit())
@@ -59,7 +59,7 @@ struct HistoryDayCellView: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(.tertiary)
+                    .fill(TimerTomatoDesign.trackFill)
 
                 if day.sessionCount > 0 {
                     GeometryReader { proxy in
@@ -73,7 +73,7 @@ struct HistoryDayCellView: View {
 
             Text(day.sessionCount == 0 ? "-" : "\(day.sessionCount)")
                 .font(.footnote.monospacedDigit())
-                .foregroundStyle(day.sessionCount == 0 ? .tertiary : .secondary)
+                .foregroundStyle(day.sessionCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
         }
         .padding(.horizontal, 4)
         .frame(maxWidth: .infinity, minHeight: 58)

@@ -47,7 +47,7 @@ struct DurationPresetPickerView: View {
         }
         .font(.footnote.monospacedDigit())
         .bold(isSelected)
-        .foregroundStyle(isSelected ? .primary : .secondary)
+        .foregroundStyle(isSelected ? Color.primary : TimerTomatoDesign.secondaryText)
         .frame(minWidth: 50)
         .padding(.horizontal, 5)
         .padding(.vertical, 6)

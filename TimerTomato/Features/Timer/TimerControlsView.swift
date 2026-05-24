@@ -59,7 +59,7 @@ struct TimerControlsView: View {
                 Button("Zurücksetzen", systemImage: "arrow.counterclockwise", action: store.reset)
                     .labelStyle(.iconOnly)
                     .buttonStyle(.glass)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TimerTomatoDesign.secondaryText)
                     .frame(width: 38)
                     .help("Zurücksetzen")
                     .glassEffectID("timer-reset-control", in: glassNamespace)

@@ -26,7 +26,7 @@ struct DurationControlView: View {
                         if showsDetailText {
                             Text("Ab nächster Sitzung")
                                 .font(.footnote)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(TimerTomatoDesign.tertiaryText)
                         }
                     }
                     .layoutPriority(1)
@@ -37,7 +37,7 @@ struct DurationControlView: View {
                         Button("Kürzer", systemImage: "minus", action: store.decreaseSelectedMinutes)
                             .labelStyle(.iconOnly)
                             .buttonStyle(.plain)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(TimerTomatoDesign.secondaryText)
                             .frame(width: 30, height: 30)
                             .contentShape(Circle())
                             .disabled(store.selectedMinutes <= PomodoroStore.minimumMinutes)
@@ -50,7 +50,7 @@ struct DurationControlView: View {
                         Button("Länger", systemImage: "plus", action: store.increaseSelectedMinutes)
                             .labelStyle(.iconOnly)
                             .buttonStyle(.plain)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(TimerTomatoDesign.secondaryText)
                             .frame(width: 30, height: 30)
                             .contentShape(Circle())
                             .disabled(store.selectedMinutes >= PomodoroStore.maximumMinutes)

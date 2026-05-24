@@ -12,7 +12,7 @@ struct SessionEmptyStateView: View {
         VStack(spacing: 6) {
             Image(systemName: "timer")
                 .font(.body)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(TimerTomatoDesign.tertiaryText)
                 .accessibilityHidden(true)
 
             Text("Noch keine Sitzungen heute")
@@ -21,7 +21,7 @@ struct SessionEmptyStateView: View {
 
             Text("Starte deinen ersten Fokusblock.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)

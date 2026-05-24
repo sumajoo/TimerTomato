@@ -12,13 +12,13 @@ struct HistoryEmptyStateView: View {
         VStack(spacing: 8) {
             Image(systemName: "calendar.badge.clock")
                 .font(.title3)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(TimerTomatoDesign.tertiaryText)
                 .accessibilityHidden(true)
 
             Text("Noch kein Fokus an diesem Tag")
                 .font(.footnote)
                 .bold()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 30)
