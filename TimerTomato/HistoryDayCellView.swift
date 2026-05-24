@@ -26,7 +26,7 @@ struct HistoryDayCellView: View {
 
     var body: some View {
         Button(action: select) {
-            VStack(spacing: 6) {
+            VStack(spacing: 5) {
                 Text(weekdayText)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -47,14 +47,14 @@ struct HistoryDayCellView: View {
                         }
                     }
                 }
-                .frame(height: 4)
+                .frame(height: 3)
 
                 Text(day.sessionCount == 0 ? "-" : "\(day.sessionCount)")
                     .font(.footnote.monospacedDigit())
                     .foregroundStyle(day.sessionCount == 0 ? .tertiary : .secondary)
             }
             .padding(.horizontal, 4)
-            .frame(maxWidth: .infinity, minHeight: 68)
+            .frame(maxWidth: .infinity, minHeight: 58)
             .background {
                 RoundedRectangle(cornerRadius: TimerTomatoDesign.rowCornerRadius)
                     .fill(isSelected ? TimerTomatoDesign.surfaceFill : .clear)
@@ -71,5 +71,7 @@ struct HistoryDayCellView: View {
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
         .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.sessionCount) Sitzungen")
+        .accessibilityHint("Der Balken zeigt den Fortschritt zum Tagesziel.")
+        .help("Tagesziel-Fortschritt")
     }
 }

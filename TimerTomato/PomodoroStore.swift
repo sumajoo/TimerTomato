@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import SwiftData
 
 @MainActor
 @Observable
@@ -57,8 +58,6 @@ final class PomodoroStore {
 
     private(set) var status = PomodoroStatus.idle
     private(set) var sessions: [PomodoroSession] = []
-    private(set) var sessionHistory: [PomodoroSession] = []
-    private var sessionsByDay: [Date: [PomodoroSession]] = [:]
     private(set) var currentDate: Date
     private(set) var activeTimerKind = PomodoroTimerKind.focus
     private(set) var activeStartedAt: Date?
@@ -69,6 +68,8 @@ final class PomodoroStore {
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let persistenceKey: String
+    @ObservationIgnored private let modelContainer: ModelContainer
+    @ObservationIgnored private let modelContext: ModelContext
     @ObservationIgnored private let calendar: Calendar
     @ObservationIgnored private let nowProvider: () -> Date
     @ObservationIgnored private let notifier: any PomodoroNotifying
@@ -191,9 +192,14 @@ final class PomodoroStore {
         status == .idle && lastCompletedAt != nil
     }
 
+    var sessionHistory: [PomodoroSession] {
+        fetchPersistedSessions()
+    }
+
     init(
         defaults: UserDefaults = .standard,
         persistenceKey: String = "TimerTomato.PomodoroStore",
+        modelContainer: ModelContainer = TimerTomatoModelContainer.makeDefault(),
         calendar: Calendar = .current,
         now: @escaping () -> Date = Date.init,
         notifier: any PomodoroNotifying = UserNotificationScheduler(),
@@ -203,6 +209,8 @@ final class PomodoroStore {
 
         self.defaults = defaults
         self.persistenceKey = persistenceKey
+        self.modelContainer = modelContainer
+        self.modelContext = modelContainer.mainContext
         self.calendar = calendar
         self.nowProvider = now
         self.notifier = notifier
@@ -338,7 +346,10 @@ final class PomodoroStore {
     }
 
     func sessions(on date: Date) -> [PomodoroSession] {
-        sessionsByDay[dayKey(for: date)] ?? []
+        let dayStart = dayKey(for: date)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+
+        return fetchSessions(startingAt: dayStart, before: dayEnd)
     }
 
     func historyDays(containing date: Date) -> [PomodoroHistoryDay] {
@@ -447,31 +458,70 @@ final class PomodoroStore {
         currentDate = nowProvider()
     }
 
+    private func fetchPersistedSessions() -> [PomodoroSession] {
+        var descriptor = FetchDescriptor<PomodoroSessionRecord>(
+            sortBy: [SortDescriptor(\.startedAt)]
+        )
+        descriptor.relationshipKeyPathsForPrefetching = []
+
+        do {
+            return try modelContext.fetch(descriptor).map(PomodoroSession.init(record:))
+        } catch {
+            assertionFailure("Could not fetch Pomodoro sessions: \(error)")
+            return []
+        }
+    }
+
+    private func fetchSessions(startingAt startDate: Date, before endDate: Date) -> [PomodoroSession] {
+        let predicate = #Predicate<PomodoroSessionRecord> { session in
+            session.startedAt >= startDate && session.startedAt < endDate
+        }
+        var descriptor = FetchDescriptor<PomodoroSessionRecord>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.startedAt)]
+        )
+        descriptor.relationshipKeyPathsForPrefetching = []
+
+        do {
+            return try modelContext.fetch(descriptor).map(PomodoroSession.init(record:))
+        } catch {
+            assertionFailure("Could not fetch Pomodoro sessions for day: \(error)")
+            return []
+        }
+    }
+
+    private func persistSession(_ session: PomodoroSession) {
+        modelContext.insert(PomodoroSessionRecord(session: session))
+
+        do {
+            try modelContext.save()
+        } catch {
+            assertionFailure("Could not save Pomodoro session: \(error)")
+        }
+    }
+
+    private func migrateLegacySessionsIfNeeded(_ legacySessions: [PomodoroSession]) -> Bool {
+        guard !legacySessions.isEmpty else {
+            return true
+        }
+
+        let existingIDs = Set(fetchPersistedSessions().map(\.id))
+
+        for session in legacySessions where !existingIDs.contains(session.id) {
+            modelContext.insert(PomodoroSessionRecord(session: session))
+        }
+
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            assertionFailure("Could not migrate legacy Pomodoro sessions: \(error)")
+            return false
+        }
+    }
+
     private func dayKey(for date: Date) -> Date {
         calendar.startOfDay(for: date)
-    }
-
-    private func rebuildSessionIndex() {
-        var index: [Date: [PomodoroSession]] = [:]
-
-        for session in sessionHistory {
-            index[dayKey(for: session.startedAt), default: []].append(session)
-        }
-
-        for key in Array(index.keys) {
-            index[key]?.sort { $0.startedAt < $1.startedAt }
-        }
-
-        sessionsByDay = index
-    }
-
-    private func appendToSessionIndex(_ session: PomodoroSession) {
-        let key = dayKey(for: session.startedAt)
-        var daySessions = sessionsByDay[key, default: []]
-
-        daySessions.append(session)
-        daySessions.sort { $0.startedAt < $1.startedAt }
-        sessionsByDay[key] = daySessions
     }
 
     private func completeActiveTimer(at completionDate: Date) {
@@ -498,8 +548,7 @@ final class PomodoroStore {
             pauseBeforeSeconds: activePauseBeforeSeconds
         )
 
-        sessionHistory.append(session)
-        appendToSessionIndex(session)
+        persistSession(session)
         sessions = sessions(on: endedAt)
         lastCompletedAt = endedAt
         status = .idle
@@ -581,15 +630,15 @@ final class PomodoroStore {
             return
         }
 
+        let legacySessions = snapshot.sessionHistory ?? snapshot.sessions ?? []
+        let shouldMigrateLegacySessions = !(snapshot.sessionHistoryMigratedToSwiftData ?? false)
+
         isRestoringSnapshot = true
         selectedMinutes = Self.clampedMinutes(snapshot.selectedMinutes)
         dailyGoalSessions = Self.clampedDailyGoalSessions(snapshot.dailyGoalSessions ?? Self.defaultDailyGoalSessions)
         status = snapshot.status
         activeTimerKind = snapshot.activeTimerKind ?? .focus
         storedDay = snapshot.storedDay
-        sessionHistory = snapshot.sessionHistory ?? snapshot.sessions
-        rebuildSessionIndex()
-        sessions = snapshot.sessions
         lastCompletedAt = snapshot.lastCompletedAt
         activeStartedAt = snapshot.activeStartedAt
         activeEndAt = snapshot.activeEndAt
@@ -597,6 +646,10 @@ final class PomodoroStore {
         activePauseBeforeSeconds = snapshot.activePauseBeforeSeconds
         pausedRemainingSeconds = snapshot.pausedRemainingSeconds
         isRestoringSnapshot = false
+
+        if shouldMigrateLegacySessions, migrateLegacySessionsIfNeeded(legacySessions) {
+            persistSnapshot()
+        }
     }
 
     private func persistSnapshot() {
@@ -606,8 +659,9 @@ final class PomodoroStore {
             status: status,
             activeTimerKind: activeTimerKind,
             storedDay: storedDay,
-            sessions: sessions,
-            sessionHistory: sessionHistory,
+            sessions: nil,
+            sessionHistory: nil,
+            sessionHistoryMigratedToSwiftData: true,
             lastCompletedAt: lastCompletedAt,
             activeStartedAt: activeStartedAt,
             activeEndAt: activeEndAt,

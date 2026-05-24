@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
 @testable import TimerTomato
 
@@ -216,8 +217,9 @@ struct TimerTomatoTests {
 
     @Test func historyLookupRestoresAcrossStoreInstances() async {
         let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
         var now = date(day: 18, hour: 9, minute: 0)
-        let store = makeStore(defaults: defaults, now: { now })
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
 
         store.start()
         now = date(day: 18, hour: 9, minute: 25)
@@ -229,7 +231,11 @@ struct TimerTomatoTests {
         now = date(day: 20, hour: 10, minute: 25)
         store.tick()
 
-        let restored = makeStore(defaults: defaults, now: { date(day: 20, hour: 12, minute: 0) })
+        let restored = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 20, hour: 12, minute: 0) }
+        )
         let firstDaySessions = restored.sessions(on: date(day: 18, hour: 12, minute: 0))
         let thirdDaySessions = restored.sessions(on: date(day: 20, hour: 12, minute: 0))
         let days = restored.historyDays(containing: date(day: 20, hour: 12, minute: 0))
@@ -240,6 +246,51 @@ struct TimerTomatoTests {
         #expect(thirdDaySessions.count == 1)
         #expect(firstDay?.sessionCount == 1)
         #expect(thirdDay?.sessionCount == 1)
+    }
+
+    @Test func legacySessionHistoryMigratesToSwiftDataOnce() async throws {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let legacySession = PomodoroSession(
+            startedAt: date(day: 18, hour: 9, minute: 0),
+            endedAt: date(day: 18, hour: 9, minute: 25),
+            plannedMinutes: 25,
+            pauseBeforeSeconds: nil
+        )
+        let snapshot = PomodoroSnapshot(
+            selectedMinutes: 25,
+            dailyGoalSessions: 4,
+            status: .idle,
+            activeTimerKind: .focus,
+            storedDay: date(day: 18, hour: 0, minute: 0),
+            sessions: [legacySession],
+            sessionHistory: [legacySession],
+            sessionHistoryMigratedToSwiftData: false,
+            lastCompletedAt: legacySession.endedAt,
+            activeStartedAt: nil,
+            activeEndAt: nil,
+            activePlannedMinutes: nil,
+            activePauseBeforeSeconds: nil,
+            pausedRemainingSeconds: nil
+        )
+        let data = try JSONEncoder().encode(snapshot)
+
+        defaults.set(data, forKey: "PomodoroStore")
+
+        let migrated = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+        let restored = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+
+        #expect(migrated.sessionHistory.count == 1)
+        #expect(restored.sessionHistory.count == 1)
+        #expect(restored.sessions(on: date(day: 18, hour: 12, minute: 0)).count == 1)
     }
 
     @Test func activeTimerRestoresFromAbsoluteDates() async {
@@ -314,12 +365,14 @@ struct TimerTomatoTests {
 
     private func makeStore(
         defaults: UserDefaults,
+        modelContainer: ModelContainer? = nil,
         now: @escaping () -> Date = { Date(timeIntervalSince1970: 0) },
         notifier: TestPomodoroNotifier = TestPomodoroNotifier()
     ) -> PomodoroStore {
         PomodoroStore(
             defaults: defaults,
             persistenceKey: "PomodoroStore",
+            modelContainer: modelContainer ?? makeModelContainer(),
             calendar: testCalendar,
             now: now,
             notifier: notifier,
@@ -332,6 +385,14 @@ struct TimerTomatoTests {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults
+    }
+
+    private func makeModelContainer() -> ModelContainer {
+        do {
+            return try TimerTomatoModelContainer.make(isStoredInMemoryOnly: true)
+        } catch {
+            fatalError("Could not create test model container: \(error)")
+        }
     }
 
     private var testCalendar: Calendar {

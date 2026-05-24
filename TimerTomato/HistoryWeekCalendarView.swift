@@ -34,7 +34,7 @@ struct HistoryWeekCalendarView: View {
                 }
             }
         }
-        .padding(6)
+        .padding(4)
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)

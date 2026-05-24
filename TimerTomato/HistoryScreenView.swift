@@ -15,7 +15,7 @@ struct HistoryScreenView: View {
     let onBack: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             HistoryHeaderView(
                 selectedDate: $selectedDate,
                 store: store,

@@ -29,8 +29,26 @@ struct HistoryDayDetailView: View {
         )
     }
 
+    private var sessionUnitText: String {
+        sessions.count == 1 ? "Sitzung" : "Sitzungen"
+    }
+
+    private var minuteUnitText: String {
+        focusMinutes == 1 ? "Minute Fokus" : "Minuten Fokus"
+    }
+
+    private var goalText: String {
+        if sessions.count >= store.dailyGoalSessions {
+            return "Tagesziel erreicht"
+        }
+
+        let remainingSessions = store.dailyGoalSessions - sessions.count
+        let unit = remainingSessions == 1 ? "Sitzung" : "Sitzungen"
+        return "Noch \(remainingSessions) \(unit) bis zum Ziel"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.dayTitle(for: selectedDate))
@@ -53,15 +71,41 @@ struct HistoryDayDetailView: View {
             if sessions.isEmpty {
                 HistoryEmptyStateView()
             } else {
-                ScrollView {
-                    VStack(spacing: 8) {
-                        ForEach(sessions.reversed()) { session in
-                            HistorySessionRowView(session: session)
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .firstTextBaseline, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(sessions.count)")
+                                .font(.system(.largeTitle, design: .rounded))
+                                .monospacedDigit()
+                                .bold()
+
+                            Text(sessionUnitText)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Divider()
+                            .frame(height: 42)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(focusMinutes)")
+                                .font(.system(.largeTitle, design: .rounded))
+                                .monospacedDigit()
+                                .bold()
+
+                            Text(minuteUnitText)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.vertical, 2)
+
+                    Label(
+                        goalText,
+                        systemImage: sessions.count >= store.dailyGoalSessions ? "checkmark.circle.fill" : "target"
+                    )
+                        .font(.footnote)
+                        .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : .secondary)
                 }
-                .frame(maxHeight: 260)
             }
         }
         .padding(12)

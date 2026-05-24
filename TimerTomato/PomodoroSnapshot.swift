@@ -13,8 +13,9 @@ struct PomodoroSnapshot: Codable {
     var status: PomodoroStatus
     var activeTimerKind: PomodoroTimerKind?
     var storedDay: Date
-    var sessions: [PomodoroSession]
+    var sessions: [PomodoroSession]?
     var sessionHistory: [PomodoroSession]?
+    var sessionHistoryMigratedToSwiftData: Bool?
     var lastCompletedAt: Date?
     var activeStartedAt: Date?
     var activeEndAt: Date?

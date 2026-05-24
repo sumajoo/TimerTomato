@@ -6,10 +6,20 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct TimerTomatoApp: App {
-    @State private var store = PomodoroStore()
+    @State private var store: PomodoroStore
+
+    private let modelContainer: ModelContainer
+
+    init() {
+        let modelContainer = TimerTomatoModelContainer.makeDefault()
+
+        self.modelContainer = modelContainer
+        _store = State(initialValue: PomodoroStore(modelContainer: modelContainer))
+    }
 
     var body: some Scene {
         MenuBarExtra {
