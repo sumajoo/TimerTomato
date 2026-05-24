@@ -124,3 +124,14 @@ struct HistoryDayDetailView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Tagesdetails") {
+    HistoryDayDetailView(
+        store: TimerTomatoPreviewData.store(sessions: TimerTomatoPreviewData.historySessions),
+        selectedDate: TimerTomatoPreviewData.referenceDate
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.historyContentWidth)
+}
+#endif

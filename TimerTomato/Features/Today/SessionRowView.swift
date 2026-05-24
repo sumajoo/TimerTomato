@@ -68,3 +68,13 @@ struct SessionRowView: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+#if DEBUG
+#Preview("Sitzungszeile") {
+    SessionRowView(
+        session: TimerTomatoPreviewData.sampleSession
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

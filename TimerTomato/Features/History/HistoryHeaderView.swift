@@ -62,3 +62,15 @@ struct HistoryHeaderView: View {
         selectedDate = store.dateByAddingWeeks(1, to: selectedDate)
     }
 }
+
+#if DEBUG
+#Preview("Verlauf Header") {
+    HistoryHeaderView(
+        selectedDate: .constant(TimerTomatoPreviewData.referenceDate),
+        store: TimerTomatoPreviewData.store(sessions: TimerTomatoPreviewData.historySessions),
+        onBack: {}
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.historyContentWidth)
+}
+#endif

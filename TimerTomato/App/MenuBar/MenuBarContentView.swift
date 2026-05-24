@@ -72,13 +72,10 @@ struct MenuBarContentView: View {
     }
 }
 
-#Preview {
+#if DEBUG
+#Preview("Menübar") {
     MenuBarContentView(
-        store: PomodoroStore(
-            defaults: .standard,
-            persistenceKey: "TimerTomato.Preview",
-            notifier: UserNotificationScheduler(),
-            shouldScheduleTimer: false
-        )
+        store: TimerTomatoPreviewData.store(timerState: .focusRunning)
     )
 }
+#endif

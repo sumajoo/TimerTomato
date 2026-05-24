@@ -50,3 +50,14 @@ struct HistoryWeekCalendarView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Wochenübersicht") {
+    HistoryWeekCalendarView(
+        selectedDate: .constant(TimerTomatoPreviewData.referenceDate),
+        store: TimerTomatoPreviewData.store(sessions: TimerTomatoPreviewData.historySessions)
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.historyContentWidth)
+}
+#endif

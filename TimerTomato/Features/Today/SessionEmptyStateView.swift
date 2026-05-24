@@ -53,3 +53,11 @@ struct SessionEmptyStateView: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+#if DEBUG
+#Preview("Heute leer") {
+    SessionEmptyStateView()
+        .padding()
+        .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

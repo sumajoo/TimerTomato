@@ -38,3 +38,11 @@ struct TimerProgressBarView: View {
         .accessibilityValue("\(Int((clampedProgress * 100).rounded())) Prozent")
     }
 }
+
+#if DEBUG
+#Preview("Fortschritt") {
+    TimerProgressBarView(progress: 0.62)
+        .padding()
+        .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

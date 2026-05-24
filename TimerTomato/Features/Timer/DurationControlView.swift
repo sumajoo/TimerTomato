@@ -90,3 +90,13 @@ struct DurationControlView: View {
         .accessibilityElement(children: .contain)
     }
 }
+
+#if DEBUG
+#Preview("Fokusdauer") {
+    DurationControlView(
+        store: TimerTomatoPreviewData.store(timerState: .focusRunning)
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

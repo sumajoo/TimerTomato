@@ -73,3 +73,13 @@ struct TimerStatusView: View {
         .shadow(color: TimerTomatoDesign.heroShadow, radius: 28, x: 0, y: 18)
     }
 }
+
+#if DEBUG
+#Preview("Timer Status") {
+    TimerStatusView(
+        store: TimerTomatoPreviewData.store(timerState: .focusRunning)
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

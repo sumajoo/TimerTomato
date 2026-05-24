@@ -62,3 +62,13 @@ struct TimerControlsView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Timer Controls") {
+    TimerControlsView(
+        store: TimerTomatoPreviewData.store(timerState: .focusRunning)
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

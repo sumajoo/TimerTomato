@@ -32,3 +32,11 @@ struct HistoryEmptyStateView: View {
         )
     }
 }
+
+#if DEBUG
+#Preview("Verlauf leer") {
+    HistoryEmptyStateView()
+        .padding()
+        .frame(width: TimerTomatoDesign.historyContentWidth)
+}
+#endif

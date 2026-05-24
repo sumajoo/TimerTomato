@@ -95,3 +95,13 @@ struct TodayStatsView: View {
         .accessibilityLabel("Heute \(store.todaySummaryText), Tagesziel \(store.dailyGoalCountText)")
     }
 }
+
+#if DEBUG
+#Preview("Heute Statistik") {
+    TodayStatsView(
+        store: TimerTomatoPreviewData.store()
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

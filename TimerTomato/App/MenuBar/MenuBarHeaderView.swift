@@ -57,3 +57,14 @@ struct MenuBarHeaderView: View {
         NSApplication.shared.terminate(nil)
     }
 }
+
+#if DEBUG
+#Preview("Menübar Header") {
+    MenuBarHeaderView(
+        store: TimerTomatoPreviewData.store(),
+        showHistory: {}
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

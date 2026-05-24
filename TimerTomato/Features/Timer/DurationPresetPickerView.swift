@@ -38,3 +38,13 @@ struct DurationPresetPickerView: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 }
+
+#if DEBUG
+#Preview("Dauer Shortcuts") {
+    DurationPresetPickerView(
+        store: TimerTomatoPreviewData.store()
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

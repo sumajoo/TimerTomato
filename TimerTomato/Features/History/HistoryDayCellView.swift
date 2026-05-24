@@ -75,3 +75,15 @@ struct HistoryDayCellView: View {
         .help("Tagesziel-Fortschritt")
     }
 }
+
+#if DEBUG
+#Preview("Kalendertag") {
+    HistoryDayCellView(
+        day: TimerTomatoPreviewData.sampleHistoryDay,
+        isSelected: true,
+        select: {}
+    )
+    .padding()
+    .frame(width: 96)
+}
+#endif

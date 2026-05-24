@@ -41,3 +41,13 @@ struct SessionListView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Heute Liste") {
+    SessionListView(
+        store: TimerTomatoPreviewData.store()
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.contentWidth)
+}
+#endif

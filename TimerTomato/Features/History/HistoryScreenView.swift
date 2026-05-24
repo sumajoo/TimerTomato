@@ -35,3 +35,15 @@ struct HistoryScreenView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
+
+#if DEBUG
+#Preview("Verlauf") {
+    HistoryScreenView(
+        selectedDate: .constant(TimerTomatoPreviewData.referenceDate),
+        store: TimerTomatoPreviewData.store(sessions: TimerTomatoPreviewData.historySessions),
+        onBack: {}
+    )
+    .padding()
+    .frame(width: TimerTomatoDesign.historyContentWidth)
+}
+#endif
