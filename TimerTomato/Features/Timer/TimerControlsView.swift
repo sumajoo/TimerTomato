@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct TimerControlsView: View {
+    @Namespace private var glassNamespace
+
     let store: PomodoroStore
 
     private var accentColor: Color {
@@ -28,6 +30,7 @@ struct TimerControlsView: View {
                     .frame(width: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(TimerTomatoDesign.tomato)
+                    .glassEffectID("timer-primary-control", in: glassNamespace)
 
                 if store.canStartBreak {
                     Button("Pause starten", systemImage: "cup.and.saucer.fill", action: store.startBreak)
@@ -36,17 +39,20 @@ struct TimerControlsView: View {
                         .foregroundStyle(TimerTomatoDesign.mint)
                         .frame(width: 38)
                         .help("5 Minuten Pause starten")
+                        .glassEffectID("timer-break-control", in: glassNamespace)
                 }
             case .running:
                 Button("Pause", systemImage: "pause.fill", action: store.pause)
                     .frame(width: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(accentColor)
+                    .glassEffectID("timer-primary-control", in: glassNamespace)
             case .paused:
                 Button("Fortsetzen", systemImage: "play.fill", action: store.resume)
                     .frame(width: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(accentColor)
+                    .glassEffectID("timer-primary-control", in: glassNamespace)
             }
 
             if store.status != .idle {
@@ -56,6 +62,7 @@ struct TimerControlsView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 38)
                     .help("Zurücksetzen")
+                    .glassEffectID("timer-reset-control", in: glassNamespace)
             }
 
             Spacer(minLength: 0)

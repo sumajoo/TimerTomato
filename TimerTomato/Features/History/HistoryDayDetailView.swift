@@ -48,79 +48,81 @@ struct HistoryDayDetailView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(store.dayTitle(for: selectedDate))
-                        .font(.callout)
-                        .bold()
+        GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.dayTitle(for: selectedDate))
+                            .font(.callout)
+                            .bold()
 
-                    Text(sessions.isEmpty ? "Keine Sitzungen" : summaryText)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text("\(min(sessions.count, store.dailyGoalSessions))/\(store.dailyGoalSessions)")
-                    .font(.footnote.monospacedDigit())
-                    .bold()
-                    .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : .secondary)
-            }
-
-            if sessions.isEmpty {
-                HistoryEmptyStateView()
-            } else {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(alignment: .firstTextBaseline, spacing: 18) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("\(sessions.count)")
-                                .font(.system(.largeTitle, design: .rounded))
-                                .monospacedDigit()
-                                .bold()
-
-                            Text(sessionUnitText)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Divider()
-                            .frame(height: 42)
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("\(focusMinutes)")
-                                .font(.system(.largeTitle, design: .rounded))
-                                .monospacedDigit()
-                                .bold()
-
-                            Text(minuteUnitText)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(sessions.isEmpty ? "Keine Sitzungen" : summaryText)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
 
-                    Label(
-                        goalText,
-                        systemImage: sessions.count >= store.dailyGoalSessions ? "checkmark.circle.fill" : "target"
-                    )
-                        .font(.footnote)
+                    Spacer()
+
+                    Text("\(min(sessions.count, store.dailyGoalSessions))/\(store.dailyGoalSessions)")
+                        .font(.footnote.monospacedDigit())
+                        .bold()
                         .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : .secondary)
                 }
+
+                if sessions.isEmpty {
+                    HistoryEmptyStateView()
+                } else {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .firstTextBaseline, spacing: 18) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(sessions.count)")
+                                    .font(.system(.largeTitle, design: .rounded))
+                                    .monospacedDigit()
+                                    .bold()
+
+                                Text(sessionUnitText)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Divider()
+                                .frame(height: 42)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(focusMinutes)")
+                                    .font(.system(.largeTitle, design: .rounded))
+                                    .monospacedDigit()
+                                    .bold()
+
+                                Text(minuteUnitText)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        Label(
+                            goalText,
+                            systemImage: sessions.count >= store.dailyGoalSessions ? "checkmark.circle.fill" : "target"
+                        )
+                            .font(.footnote)
+                            .foregroundStyle(sessions.count >= store.dailyGoalSessions ? TimerTomatoDesign.mint : .secondary)
+                    }
+                }
             }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                .fill(TimerTomatoDesign.surfaceFill)
-        }
-        .glassEffect(
-            .regular,
-            in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
-                .strokeBorder(TimerTomatoDesign.surfaceMidline, lineWidth: 0.65)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+                    .fill(TimerTomatoDesign.surfaceFill)
+            }
+            .glassEffect(
+                .regular,
+                in: .rect(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: TimerTomatoDesign.panelCornerRadius)
+                    .strokeBorder(TimerTomatoDesign.surfaceMidline, lineWidth: 0.65)
+            }
         }
     }
 }

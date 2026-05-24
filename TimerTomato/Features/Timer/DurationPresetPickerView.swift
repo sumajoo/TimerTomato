@@ -8,34 +8,52 @@
 import SwiftUI
 
 struct DurationPresetPickerView: View {
+    @Namespace private var glassNamespace
+
     @Bindable var store: PomodoroStore
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(PomodoroStore.durationPresets, id: \.self) { minutes in
-                Button(PomodoroFormatters.minutesText(minutes)) {
-                    store.selectPreset(minutes: minutes)
-                }
-                .font(.footnote.monospacedDigit())
-                .bold(store.selectedMinutes == minutes)
-                .foregroundStyle(store.selectedMinutes == minutes ? .primary : .secondary)
-                .frame(minWidth: 50)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 6)
-                .background {
-                    Capsule()
-                        .fill(store.selectedMinutes == minutes ? TimerTomatoDesign.surfaceFill : .clear)
-                }
-                .glassEffect(
-                    .regular,
-                    in: .capsule
-                )
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(minutes) Minuten")
-                .accessibilityValue(store.selectedMinutes == minutes ? "Ausgewählt" : "")
+                presetButton(minutes: minutes)
             }
         }
         .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private func presetButton(minutes: Int) -> some View {
+        let isSelected = store.selectedMinutes == minutes
+
+        if isSelected {
+            basePresetButton(minutes: minutes, isSelected: isSelected)
+                .background {
+                    Capsule()
+                        .fill(TimerTomatoDesign.surfaceFill)
+                }
+                .glassEffect(
+                    .regular.interactive(),
+                    in: .capsule
+                )
+                .glassEffectID("duration-preset-selection", in: glassNamespace)
+        } else {
+            basePresetButton(minutes: minutes, isSelected: isSelected)
+        }
+    }
+
+    private func basePresetButton(minutes: Int, isSelected: Bool) -> some View {
+        Button(PomodoroFormatters.minutesText(minutes)) {
+            store.selectPreset(minutes: minutes)
+        }
+        .font(.footnote.monospacedDigit())
+        .bold(isSelected)
+        .foregroundStyle(isSelected ? .primary : .secondary)
+        .frame(minWidth: 50)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 6)
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(minutes) Minuten")
+        .accessibilityValue(isSelected ? "Ausgewählt" : "")
     }
 }
 

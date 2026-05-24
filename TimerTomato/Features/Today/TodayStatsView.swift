@@ -76,7 +76,7 @@ struct TodayStatsView: View {
                         .fill(TimerTomatoDesign.surfaceFill)
                 }
                 .glassEffect(
-                    .regular,
+                    .regular.interactive(),
                     in: .capsule
                 )
             }

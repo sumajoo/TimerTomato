@@ -26,51 +26,53 @@ struct TimerStatusView: View {
     }
 
     var body: some View {
-        VStack(spacing: 17) {
-            VStack(spacing: 4) {
-                Text(store.remainingClockText)
-                    .font(.system(.largeTitle, design: .rounded).monospacedDigit())
-                    .bold()
-                    .contentTransition(.numericText())
-                    .accessibilityLabel("Verbleibende Zeit \(store.remainingClockText)")
+        GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
+            VStack(spacing: 17) {
+                VStack(spacing: 4) {
+                    Text(store.remainingClockText)
+                        .font(.system(.largeTitle, design: .rounded).monospacedDigit())
+                        .bold()
+                        .contentTransition(.numericText())
+                        .accessibilityLabel("Verbleibende Zeit \(store.remainingClockText)")
 
-                Text(statusText)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    Text(statusText)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                TimerProgressBarView(progress: store.progress, tint: accentColor)
+
+                TimerControlsView(store: store)
             }
-
-            TimerProgressBarView(progress: store.progress, tint: accentColor)
-
-            TimerControlsView(store: store)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 20)
+            .padding(.top, 22)
+            .padding(.bottom, 18)
+            .background {
+                RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
+                    .fill(TimerTomatoDesign.surfaceFill)
+            }
+            .glassEffect(
+                .regular,
+                in: .rect(cornerRadius: TimerTomatoDesign.heroCornerRadius)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                TimerTomatoDesign.surfaceHighlight,
+                                TimerTomatoDesign.surfaceMidline,
+                                TimerTomatoDesign.surfaceLowlight
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.9
+                    )
+            }
+            .shadow(color: TimerTomatoDesign.heroShadow, radius: 28, x: 0, y: 18)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 20)
-        .padding(.top, 22)
-        .padding(.bottom, 18)
-        .background {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
-                .fill(TimerTomatoDesign.surfaceFill)
-        }
-        .glassEffect(
-            .regular,
-            in: .rect(cornerRadius: TimerTomatoDesign.heroCornerRadius)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: TimerTomatoDesign.heroCornerRadius)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            TimerTomatoDesign.surfaceHighlight,
-                            TimerTomatoDesign.surfaceMidline,
-                            TimerTomatoDesign.surfaceLowlight
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.9
-                )
-        }
-        .shadow(color: TimerTomatoDesign.heroShadow, radius: 28, x: 0, y: 18)
     }
 }
 

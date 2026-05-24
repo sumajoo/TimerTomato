@@ -40,21 +40,19 @@ struct MenuBarContentView: View {
     }
 
     var body: some View {
-        GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
-            Group {
-                switch screen {
-                case .main:
-                    mainView
-                case .history:
-                    HistoryScreenView(
-                        selectedDate: $selectedHistoryDate,
-                        store: store,
-                        onBack: showMain
-                    )
-                }
+        Group {
+            switch screen {
+            case .main:
+                mainView
+            case .history:
+                HistoryScreenView(
+                    selectedDate: $selectedHistoryDate,
+                    store: store,
+                    onBack: showMain
+                )
             }
-            .padding(TimerTomatoDesign.contentPadding)
         }
+        .padding(TimerTomatoDesign.contentPadding)
         .frame(width: contentWidth)
         .onAppear(perform: store.refreshForToday)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.status)

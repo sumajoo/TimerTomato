@@ -36,18 +36,20 @@ struct HistoryHeaderView: View {
 
             Spacer()
 
-            HStack(spacing: 4) {
-                Button("Vorherige Woche", systemImage: "chevron.left", action: previousWeek)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
-                    .frame(width: 30, height: 30)
-                    .help("Vorherige Woche")
+            GlassEffectContainer(spacing: 4) {
+                HStack(spacing: 4) {
+                    Button("Vorherige Woche", systemImage: "chevron.left", action: previousWeek)
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.glass)
+                        .frame(width: 30, height: 30)
+                        .help("Vorherige Woche")
 
-                Button("Nächste Woche", systemImage: "chevron.right", action: nextWeek)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
-                    .frame(width: 30, height: 30)
-                    .help("Nächste Woche")
+                    Button("Nächste Woche", systemImage: "chevron.right", action: nextWeek)
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.glass)
+                        .frame(width: 30, height: 30)
+                        .help("Nächste Woche")
+                }
             }
         }
         .padding(.horizontal, 2)
