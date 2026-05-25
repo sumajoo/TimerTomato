@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+*.xcscmblueprint
+
+# Build outputs and logs
+DerivedData/
+build/
+Build/
+*.xcactivitylog
+*.dSYM/
+*.dSYM.zip
+*.app
+*.ipa
+*.pkg
+*.dmg
+
+# Signing material
+*.mobileprovision
+*.provisionprofile
+*.cer
+*.p12
+*.pem
+*.key
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# SwiftPM local state
+.swiftpm/
