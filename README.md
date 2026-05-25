@@ -110,7 +110,8 @@ TimerTomatoUITests/
 
 ## Contributing
 
-Contributions are welcome once the project is public. Please keep changes small, focused, and easy to review.
+Contributions are welcome. Please keep changes small, focused, and easy to review.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 Before opening a pull request:
 
@@ -132,6 +133,10 @@ Code guidelines:
 
 TimerTomato is a local-first app. Focus sessions and settings are stored locally on the user's Mac through SwiftData and app storage.
 
+## Security
+
+Please report suspected security or privacy issues privately. See [SECURITY.md](SECURITY.md).
+
 ## License
 
-This repository does not currently include an open-source license. Add a `LICENSE` file before making the project public so contributors and users have clear reuse terms.
+TimerTomato is released under the MIT License. See [LICENSE](LICENSE).
