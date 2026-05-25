@@ -20,12 +20,24 @@ struct HistoryWeekSummaryView: View {
         store.streakSummary
     }
 
+    private var momentumSummary: PomodoroMomentumSummary {
+        store.momentumSummary(endingAt: selectedDate)
+    }
+
+    private var blockerSummary: PomodoroBlockerSummary {
+        store.blockerSummary(containing: selectedDate)
+    }
+
     private var bestFocusDays: [PomodoroBestFocusDay] {
         store.bestFocusDays(limit: 3)
     }
 
     private var shouldShowSuggestion: Bool {
         store.weeklyGoalSuggestionSessions != store.weeklyGoalSessions
+    }
+
+    private var shouldShowRescueAction: Bool {
+        store.shouldShowRescueAction(containing: selectedDate)
     }
 
     var body: some View {
@@ -36,34 +48,62 @@ struct HistoryWeekSummaryView: View {
                 TimerProgressBarView(progress: weekSummary.goalProgress, tint: TimerTomatoDesign.mint)
                     .frame(height: 7)
 
-                HStack(spacing: 5) {
-                    ForEach(weekSummary.days) { day in
-                        WeeklyDayProgressView(
-                            day: day,
-                            isCurrent: store.isSameDay(day.date, store.currentDate)
-                        )
-                    }
-                }
-
                 HStack(spacing: 10) {
-                    streakBadge(
+                    metricBadge(
+                        title: "Momentum",
+                        value: momentumSummary.countText,
+                        systemImage: "sparkles"
+                    )
+
+                    metricBadge(
                         title: "Aktuell",
                         value: streakSummary.currentText,
                         systemImage: "flame.fill"
                     )
 
-                    streakBadge(
+                    metricBadge(
                         title: "Beste Serie",
                         value: streakSummary.bestText,
                         systemImage: "bolt.fill"
                     )
                 }
 
-                bestFocusDaysView
+                momentumStrip
+
+                if shouldShowRescueAction {
+                    Button(action: store.startRescueFocus) {
+                        Label("Heute reicht eine kurze Einheit fürs Momentum", systemImage: "bolt.circle.fill")
+                            .font(.caption.bold())
+                            .labelStyle(.titleAndIcon)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                            .foregroundStyle(TimerTomatoDesign.mint)
+                            .frame(maxWidth: .infinity, minHeight: 30)
+                    }
+                    .buttonStyle(.plain)
+                    .background {
+                        Capsule()
+                            .fill(TimerTomatoDesign.surfaceFill)
+                    }
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .help("10 Minuten Rescue-Fokus starten")
+                }
+
+                if blockerSummary.hasBlockers {
+                    blockerHint
+                }
+
+                if let bestFocusDayText {
+                    Label(bestFocusDayText, systemImage: "trophy.fill")
+                        .font(.footnote)
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
 
                 if shouldShowSuggestion {
                     Button(
-                        "Vorschlag \(store.weeklyGoalSuggestionSessions) übernehmen",
+                        "Quest-Vorschlag \(store.weeklyGoalSuggestionSessions) übernehmen",
                         action: store.acceptWeeklyGoalSuggestion
                     )
                     .font(.caption)
@@ -76,7 +116,7 @@ struct HistoryWeekSummaryView: View {
                             .fill(TimerTomatoDesign.surfaceFill)
                     }
                     .glassEffect(.regular.interactive(), in: .capsule)
-                    .help("Wochenziel-Vorschlag übernehmen")
+                    .help("Wochen-Quest-Vorschlag übernehmen")
                 }
             }
             .padding(12)
@@ -88,11 +128,17 @@ struct HistoryWeekSummaryView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Wochenziel")
+                Text("Wochen-Quest")
                     .font(.callout)
                     .bold()
 
-                Text("\(weekSummary.focusWinCount) Siege · \(weekSummary.sessionCount) Sitzungen · \(weekSummary.focusMinutes) min")
+                Text("Diese Woche: \(weekSummary.goalCountText) Fokus-Siege")
+                    .font(.footnote)
+                    .foregroundStyle(TimerTomatoDesign.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
+                Text(store.weeklyQuestStatusText(containing: selectedDate))
                     .font(.footnote)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
                     .lineLimit(1)
@@ -102,28 +148,28 @@ struct HistoryWeekSummaryView: View {
             Spacer(minLength: 10)
 
             HStack(spacing: 2) {
-                Button("Wochenziel senken", systemImage: "minus", action: store.decreaseWeeklyGoalSessions)
+                Button("Wochen-Quest senken", systemImage: "minus", action: store.decreaseWeeklyGoalSessions)
                     .labelStyle(.iconOnly)
                     .buttonStyle(.plain)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
                     .frame(width: 26, height: 26)
                     .contentShape(Circle())
                     .disabled(store.weeklyGoalSessions <= PomodoroStore.minimumWeeklyGoalSessions)
-                    .help("Wochenziel senken")
+                    .help("Wochen-Quest senken")
 
                 Text("\(store.weeklyGoalSessions)")
                     .font(.footnote.monospacedDigit())
                     .bold()
                     .frame(minWidth: 22)
 
-                Button("Wochenziel erhöhen", systemImage: "plus", action: store.increaseWeeklyGoalSessions)
+                Button("Wochen-Quest erhöhen", systemImage: "plus", action: store.increaseWeeklyGoalSessions)
                     .labelStyle(.iconOnly)
                     .buttonStyle(.plain)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
                     .frame(width: 26, height: 26)
                     .contentShape(Circle())
                     .disabled(store.weeklyGoalSessions >= PomodoroStore.maximumWeeklyGoalSessions)
-                    .help("Wochenziel erhöhen")
+                    .help("Wochen-Quest erhöhen")
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
@@ -135,29 +181,52 @@ struct HistoryWeekSummaryView: View {
         }
     }
 
-    private var bestFocusDaysView: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("Beste Fokus-Tage")
-                .font(.footnote)
-                .bold()
-
-            if bestFocusDays.isEmpty {
-                Text("Noch keine Fokus-Tage")
-                    .font(.footnote)
-                    .foregroundStyle(TimerTomatoDesign.tertiaryText)
-            } else {
-                HStack(spacing: 7) {
-                    ForEach(Array(bestFocusDays.enumerated()), id: \.element.id) { index, day in
-                        BestFocusDayChip(rank: index + 1, day: day)
+    private var momentumStrip: some View {
+        HStack(spacing: 5) {
+            ForEach(momentumSummary.days) { day in
+                Capsule()
+                    .fill(day.hasActivity ? TimerTomatoDesign.mint : TimerTomatoDesign.trackFill)
+                    .frame(height: 7)
+                    .overlay {
+                        if store.isSameDay(day.date, store.currentDate) {
+                            Capsule()
+                                .stroke(TimerTomatoDesign.mint.opacity(0.55), lineWidth: 1)
+                        }
                     }
-
-                    Spacer(minLength: 0)
-                }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide))), \(day.hasActivity ? "Momentum erreicht" : "kein Momentum")")
             }
         }
     }
 
-    private func streakBadge(title: String, value: String, systemImage: String) -> some View {
+    private var blockerHint: some View {
+        Label(blockerHintText, systemImage: "exclamationmark.circle.fill")
+            .font(.footnote)
+            .foregroundStyle(TimerTomatoDesign.secondaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+    }
+
+    private var blockerHintText: String {
+        if let mostCommonReason = blockerSummary.mostCommonReason {
+            return "Diese Woche \(blockerSummary.blockedCount)x blockiert · häufig: \(mostCommonReason.title)"
+        }
+
+        return "Diese Woche \(blockerSummary.blockedCount)x blockiert"
+    }
+
+    private var bestFocusDayText: String? {
+        guard let bestFocusDay = bestFocusDays.first else {
+            return nil
+        }
+
+        let title = store.isSameDay(bestFocusDay.date, store.currentDate)
+            ? "Heute"
+            : bestFocusDay.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        return "Bester Tag: \(title) · \(bestFocusDay.focusMinutes) min"
+    }
+
+    private func metricBadge(title: String, value: String, systemImage: String) -> some View {
         Label {
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
@@ -173,40 +242,6 @@ struct HistoryWeekSummaryView: View {
                 .foregroundStyle(TimerTomatoDesign.mint)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct BestFocusDayChip: View {
-    let rank: Int
-    let day: PomodoroBestFocusDay
-
-    private var dateText: String {
-        day.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("#\(rank)")
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(TimerTomatoDesign.mint)
-
-            Text(dateText)
-                .font(.caption2)
-                .foregroundStyle(TimerTomatoDesign.secondaryText)
-                .lineLimit(1)
-
-            Text("\(day.focusMinutes) min")
-                .font(.caption.monospacedDigit())
-                .bold()
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(width: 104, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(TimerTomatoDesign.trackFill)
-        }
-        .accessibilityLabel("Platz \(rank), \(dateText), \(day.focusMinutes) Minuten Fokus")
     }
 }
 

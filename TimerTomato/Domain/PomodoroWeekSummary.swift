@@ -42,6 +42,10 @@ struct PomodoroWeekSummary: Equatable {
         focusWinCount >= weeklyGoalSessions
     }
 
+    var remainingFocusWins: Int {
+        max(weeklyGoalSessions - focusWinCount, 0)
+    }
+
     var goalCountText: String {
         "\(min(focusWinCount, weeklyGoalSessions))/\(weeklyGoalSessions)"
     }

@@ -20,6 +20,9 @@ final class PomodoroSessionRecord {
     var intent: String?
     var outcomeRawValue: String?
     var isOutcomeTracked: Bool?
+    var isRescue: Bool?
+    var blockerReasonRawValue: String?
+    var blockerNextStep: String?
 
     init(
         id: UUID = UUID(),
@@ -29,7 +32,10 @@ final class PomodoroSessionRecord {
         pauseBeforeSeconds: TimeInterval?,
         intent: String? = nil,
         outcomeRawValue: String? = nil,
-        isOutcomeTracked: Bool = false
+        isOutcomeTracked: Bool = false,
+        isRescue: Bool = false,
+        blockerReasonRawValue: String? = nil,
+        blockerNextStep: String? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -39,6 +45,9 @@ final class PomodoroSessionRecord {
         self.intent = PomodoroSession.normalizedIntent(intent)
         self.outcomeRawValue = outcomeRawValue
         self.isOutcomeTracked = isOutcomeTracked
+        self.isRescue = isRescue
+        self.blockerReasonRawValue = blockerReasonRawValue
+        self.blockerNextStep = PomodoroSession.normalizedIntent(blockerNextStep)
     }
 
     convenience init(session: PomodoroSession) {
@@ -50,7 +59,10 @@ final class PomodoroSessionRecord {
             pauseBeforeSeconds: session.pauseBeforeSeconds,
             intent: session.intent,
             outcomeRawValue: session.outcome?.rawValue,
-            isOutcomeTracked: session.isOutcomeTracked
+            isOutcomeTracked: session.isOutcomeTracked,
+            isRescue: session.isRescue,
+            blockerReasonRawValue: session.blockerReason?.rawValue,
+            blockerNextStep: session.blockerNextStep
         )
     }
 }
@@ -65,7 +77,10 @@ extension PomodoroSession {
             pauseBeforeSeconds: record.pauseBeforeSeconds,
             intent: record.intent,
             outcome: record.outcomeRawValue.flatMap(PomodoroSessionOutcome.init(rawValue:)),
-            isOutcomeTracked: record.isOutcomeTracked ?? false
+            isOutcomeTracked: record.isOutcomeTracked ?? false,
+            isRescue: record.isRescue ?? false,
+            blockerReason: record.blockerReasonRawValue.flatMap(PomodoroBlockerReason.init(rawValue:)),
+            blockerNextStep: record.blockerNextStep
         )
     }
 }

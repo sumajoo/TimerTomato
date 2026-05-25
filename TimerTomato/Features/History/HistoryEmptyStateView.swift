@@ -21,8 +21,8 @@ struct HistoryEmptyStateView: View {
                 .foregroundStyle(TimerTomatoDesign.secondaryText)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
-        .timerTomatoCard(.row)
+        .padding(.vertical, 24)
+        .accessibilityElement(children: .combine)
     }
 }
 

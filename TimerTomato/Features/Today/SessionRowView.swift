@@ -17,6 +17,10 @@ struct SessionRowView: View {
     }
 
     private var subtitleText: String {
+        if session.isRescue {
+            return "\(session.plannedMinutes)-min Rescue · \(timeRangeText)"
+        }
+
         if session.intentTitle != nil {
             return "\(session.plannedMinutes) min Fokus · \(timeRangeText)"
         }
@@ -81,12 +85,20 @@ struct SessionRowView: View {
             return "questionmark.circle.fill"
         }
 
+        if session.isRescue {
+            return "bolt.circle.fill"
+        }
+
         return session.isFocusWin ? "checkmark.circle.fill" : "minus.circle.fill"
     }
 
     private var leadingTint: Color {
         if session.isPendingOutcome {
             return TimerTomatoDesign.tertiaryText
+        }
+
+        if session.isRescue {
+            return TimerTomatoDesign.mint
         }
 
         return session.isFocusWin ? TimerTomatoDesign.mint : TimerTomatoDesign.tomato

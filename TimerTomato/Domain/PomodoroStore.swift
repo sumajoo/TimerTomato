@@ -14,6 +14,7 @@ import SwiftData
 @Observable
 final class PomodoroStore {
     static let defaultMinutes = 25
+    static let rescueMinutes = 10
     static let minimumMinutes = 5
     static let maximumMinutes = 90
     static let minuteStep = 5
@@ -25,7 +26,8 @@ final class PomodoroStore {
     static let minimumWeeklyGoalSessions = 1
     static let maximumWeeklyGoalSessions = maximumDailyGoalSessions * 7
     static let durationPresets = [10, 15, 25, 45, 60]
-    static let focusIntentSuggestions = ["Schreiben", "Bug fixen", "Inbox", "Lernen", "Planen"]
+    static let focusIntentSuggestions = ["Entwurf schreiben", "Bug fixen", "Inbox leeren", "Lernen"]
+    static let rescueFocusIntent = "Tag retten"
     static let maximumFocusIntentCharacters = 44
 
     var selectedMinutes = PomodoroStore.defaultMinutes {
@@ -103,6 +105,7 @@ final class PomodoroStore {
     private(set) var activePlannedMinutes: Int?
     private(set) var activePauseBeforeSeconds: TimeInterval?
     private(set) var activeFocusIntent: String?
+    private(set) var activeIsRescueSession = false
     private(set) var pausedRemainingSeconds: TimeInterval?
     private(set) var pendingOutcomeSessionID: UUID?
     private(set) var notificationPermission = PomodoroNotificationPermission.unknown
@@ -176,6 +179,18 @@ final class PomodoroStore {
         return min(max(1 - (Double(remainingSeconds) / totalSeconds), 0), 1)
     }
 
+    var focusHeatIntensity: Double {
+        guard
+            activeTimerKind == .focus,
+            status != .idle,
+            !hasPendingOutcome
+        else {
+            return 0
+        }
+
+        return pow(progress, 1.25)
+    }
+
     var sessionsCompletedToday: Int {
         sessions.count
     }
@@ -237,6 +252,10 @@ final class PomodoroStore {
 
     var currentWeekSummary: PomodoroWeekSummary {
         weekSummary(containing: currentDate)
+    }
+
+    var momentumSummary: PomodoroMomentumSummary {
+        momentumSummary(endingAt: currentDate)
     }
 
     var weeklyGoalSuggestionSessions: Int {
@@ -354,6 +373,28 @@ final class PomodoroStore {
         requestNotificationAuthorization()
     }
 
+    func startRescueFocus() {
+        let startDate = nowProvider()
+        refreshForToday(at: startDate)
+
+        guard canStartFocus else {
+            return
+        }
+
+        activeFocusIntent = Self.rescueFocusIntent
+        pendingFocusIntent = ""
+
+        startTimer(
+            kind: .focus,
+            minutes: Self.rescueMinutes,
+            startDate: startDate,
+            pauseBeforeSeconds: lastCompletedAt.map { max(0, startDate.timeIntervalSince($0)) },
+            isRescueSession: true
+        )
+
+        requestNotificationAuthorization()
+    }
+
     func pause() {
         updateCurrentDate()
 
@@ -394,6 +435,7 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = nowProvider()
 
@@ -440,7 +482,11 @@ final class PomodoroStore {
         pendingFocusIntent = ""
     }
 
-    func completePendingOutcome(_ outcome: PomodoroSessionOutcome) {
+    func completePendingOutcome(
+        _ outcome: PomodoroSessionOutcome,
+        blockerReason: PomodoroBlockerReason? = nil,
+        blockerNextStep: String? = nil
+    ) {
         guard let pendingOutcomeSessionID else {
             return
         }
@@ -460,6 +506,8 @@ final class PomodoroStore {
 
             record.outcomeRawValue = outcome.rawValue
             record.isOutcomeTracked = true
+            record.blockerReasonRawValue = outcome == .blocked ? blockerReason?.rawValue : nil
+            record.blockerNextStep = outcome == .blocked ? PomodoroSession.normalizedIntent(blockerNextStep) : nil
             try modelContext.save()
             self.pendingOutcomeSessionID = nil
             refreshForToday(at: currentDate)
@@ -467,6 +515,46 @@ final class PomodoroStore {
         } catch {
             assertionFailure("Could not complete Pomodoro outcome: \(error)")
         }
+    }
+
+    func completionFeedback(
+        for session: PomodoroSession,
+        outcome: PomodoroSessionOutcome
+    ) -> PomodoroCompletionFeedback {
+        let weeklySummary = weekSummary(containing: session.endedAt)
+        let weekText = weeklySummary.goalCountText
+
+        if outcome == .blocked {
+            return PomodoroCompletionFeedback(
+                kind: .blocked,
+                title: "Blockade notiert",
+                detail: blockerFeedbackDetail(containing: session.endedAt),
+                offersRescueAction: canStartFocus
+            )
+        }
+
+        if session.isRescue {
+            return PomodoroCompletionFeedback(
+                kind: .momentum,
+                title: "Momentum erreicht",
+                detail: "\(session.plannedMinutes)-min Rescue · Diese Woche \(weekText)",
+                offersRescueAction: false
+            )
+        }
+
+        let day = PomodoroHistoryDay(
+            date: session.endedAt,
+            sessions: sessions(on: session.endedAt),
+            dailyGoalSessions: dailyGoalSessions
+        )
+        let streakText = streakSummary(endingAt: session.endedAt).currentText
+
+        return PomodoroCompletionFeedback(
+            kind: .focusWin,
+            title: "+1 Fokus-Sieg",
+            detail: "Heute \(day.goalCountText) · Diese Woche \(weekText) · Streak: \(streakText)",
+            offersRescueAction: false
+        )
     }
 
     func refreshForToday() {
@@ -514,6 +602,85 @@ final class PomodoroStore {
             days: historyDays(containing: date),
             weeklyGoalSessions: weeklyGoalSessions
         )
+    }
+
+    func weeklyQuestStatusText(containing date: Date) -> String {
+        let summary = weekSummary(containing: date)
+
+        if summary.didReachGoal {
+            return "Starke Woche geschafft"
+        }
+
+        if isSameDay(summary.startDate, startOfWeek(containing: currentDate)) {
+            let elapsedDays = daysElapsedInCurrentWeek(from: summary.startDate)
+            let expectedWins = Int(ceil(Double(summary.weeklyGoalSessions) * Double(elapsedDays) / 7))
+
+            if summary.focusWinCount >= expectedWins {
+                return "Du bist auf Kurs"
+            }
+        }
+
+        return "Noch \(summary.remainingFocusWins) bis zur starken Woche"
+    }
+
+    func momentumSummary(endingAt date: Date) -> PomodoroMomentumSummary {
+        let today = dayKey(for: date)
+        let days = (0..<7).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset - 6, to: today)
+        }
+
+        guard let firstDay = days.first, let endDate = calendar.date(byAdding: .day, value: 1, to: today) else {
+            return PomodoroMomentumSummary(days: [])
+        }
+
+        let activeDays = Set(
+            fetchSessions(startingAt: firstDay, before: endDate)
+                .filter(\.countsAsMomentumActivity)
+                .map { dayKey(for: $0.startedAt) }
+        )
+
+        return PomodoroMomentumSummary(
+            days: days.map { day in
+                PomodoroMomentumDay(date: day, hasActivity: activeDays.contains(day))
+            }
+        )
+    }
+
+    func blockerSummary(containing date: Date) -> PomodoroBlockerSummary {
+        let weekStart = startOfWeek(containing: date)
+        let weekEnd = calendar.date(byAdding: .weekOfYear, value: 1, to: weekStart) ?? weekStart
+        let blockedSessions = fetchSessions(startingAt: weekStart, before: weekEnd).filter { session in
+            session.outcome == .blocked
+        }
+        let reasonCounts = Dictionary(grouping: blockedSessions.compactMap(\.blockerReason), by: { $0 })
+            .mapValues(\.count)
+        let mostCommonReason = PomodoroBlockerReason.allCases
+            .map { reason in (reason: reason, count: reasonCounts[reason, default: 0]) }
+            .filter { $0.count > 0 }
+            .sorted { first, second in
+                if first.count != second.count {
+                    return first.count > second.count
+                }
+
+                let firstIndex = PomodoroBlockerReason.allCases.firstIndex(of: first.reason) ?? 0
+                let secondIndex = PomodoroBlockerReason.allCases.firstIndex(of: second.reason) ?? 0
+                return firstIndex < secondIndex
+            }
+            .first?
+            .reason
+
+        return PomodoroBlockerSummary(
+            blockedCount: blockedSessions.count,
+            mostCommonReason: mostCommonReason,
+            nextSteps: blockedSessions.compactMap(\.blockerNextStep)
+        )
+    }
+
+    func shouldShowRescueAction(containing date: Date) -> Bool {
+        isSameDay(startOfWeek(containing: date), startOfWeek(containing: currentDate))
+            && canStartFocus
+            && focusWinsToday < dailyGoalSessions
+            && !momentumSummary.hasActivityToday
     }
 
     func bestFocusDays(limit: Int) -> [PomodoroBestFocusDay] {
@@ -578,7 +745,8 @@ final class PomodoroStore {
         kind: PomodoroTimerKind,
         minutes: Int,
         startDate: Date,
-        pauseBeforeSeconds: TimeInterval?
+        pauseBeforeSeconds: TimeInterval?,
+        isRescueSession: Bool = false
     ) {
         let durationSeconds = TimeInterval(minutes * 60)
 
@@ -587,6 +755,7 @@ final class PomodoroStore {
         activeEndAt = startDate.addingTimeInterval(durationSeconds)
         activePlannedMinutes = minutes
         activePauseBeforeSeconds = pauseBeforeSeconds
+        activeIsRescueSession = isRescueSession
         pausedRemainingSeconds = nil
         status = .running
         currentDate = startDate
@@ -695,6 +864,7 @@ final class PomodoroStore {
 
         let plannedMinutes = activePlannedMinutes ?? selectedMinutes
         let endedAt = max(completionDate, startedAt)
+        let isRescueSession = activeIsRescueSession
         let session = PomodoroSession(
             startedAt: startedAt,
             endedAt: endedAt,
@@ -702,7 +872,8 @@ final class PomodoroStore {
             pauseBeforeSeconds: activePauseBeforeSeconds,
             intent: activeFocusIntent,
             outcome: nil,
-            isOutcomeTracked: true
+            isOutcomeTracked: true,
+            isRescue: isRescueSession
         )
 
         persistSession(session)
@@ -716,6 +887,7 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = endedAt
 
@@ -744,6 +916,7 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = endedAt
 
@@ -802,6 +975,7 @@ final class PomodoroStore {
         activePlannedMinutes = snapshot.activePlannedMinutes
         activePauseBeforeSeconds = snapshot.activePauseBeforeSeconds
         activeFocusIntent = PomodoroSession.normalizedIntent(snapshot.activeFocusIntent)
+        activeIsRescueSession = snapshot.activeIsRescueSession ?? false
         pausedRemainingSeconds = snapshot.pausedRemainingSeconds
         pendingFocusIntent = snapshot.pendingFocusIntent ?? ""
         pendingOutcomeSessionID = snapshot.pendingOutcomeSessionID
@@ -831,7 +1005,8 @@ final class PomodoroStore {
             pausedRemainingSeconds: pausedRemainingSeconds,
             pendingFocusIntent: PomodoroSession.normalizedIntent(pendingFocusIntent),
             activeFocusIntent: activeFocusIntent,
-            pendingOutcomeSessionID: pendingOutcomeSessionID
+            pendingOutcomeSessionID: pendingOutcomeSessionID,
+            activeIsRescueSession: activeIsRescueSession
         )
 
         guard let data = try? JSONEncoder().encode(snapshot) else {
@@ -871,6 +1046,22 @@ final class PomodoroStore {
         let totalFocusWins = recentCompletedWeekCounts.reduce(0, +)
         let averageFocusWins = Double(totalFocusWins) / Double(recentCompletedWeekCounts.count)
         return Self.clampedWeeklyGoalSessions(Int(ceil(averageFocusWins * 1.10)))
+    }
+
+    private func daysElapsedInCurrentWeek(from weekStart: Date) -> Int {
+        let today = dayKey(for: currentDate)
+        let dayOffset = calendar.dateComponents([.day], from: weekStart, to: today).day ?? 0
+        return min(max(dayOffset + 1, 1), 7)
+    }
+
+    private func blockerFeedbackDetail(containing date: Date) -> String {
+        let summary = blockerSummary(containing: date)
+
+        if let mostCommonReason = summary.mostCommonReason {
+            return "Diese Woche \(summary.blockedCount)x blockiert · häufig: \(mostCommonReason.title)"
+        }
+
+        return "Diese Woche \(summary.blockedCount)x blockiert"
     }
 
     private func streakSummary(endingAt date: Date) -> PomodoroStreakSummary {

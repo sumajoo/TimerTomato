@@ -26,4 +26,5 @@ struct PomodoroSnapshot: Codable {
     var pendingFocusIntent: String? = nil
     var activeFocusIntent: String? = nil
     var pendingOutcomeSessionID: UUID? = nil
+    var activeIsRescueSession: Bool? = nil
 }

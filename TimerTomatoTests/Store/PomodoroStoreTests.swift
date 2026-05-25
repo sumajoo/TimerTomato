@@ -45,6 +45,15 @@ struct TimerTomatoTests {
         #expect(restored.selectedMinutes == 10)
     }
 
+    @Test func focusIntentSuggestionsUseConcreteFocusWinsDefaults() async {
+        #expect(PomodoroStore.focusIntentSuggestions == [
+            "Entwurf schreiben",
+            "Bug fixen",
+            "Inbox leeren",
+            "Lernen"
+        ])
+    }
+
     @Test func dailyGoalPersistsAndClamps() async {
         let defaults = makeDefaults()
         let store = makeStore(defaults: defaults)
@@ -177,6 +186,311 @@ struct TimerTomatoTests {
         #expect(summary.focusWinCount == 3)
         #expect(summary.goalProgress == 1)
         #expect(summary.goalCountText == "3/3")
+    }
+
+    @Test func completionFeedbackSummarizesCompletedAndProgressedFocusWins() async {
+        let completedContainer = makeModelContainer()
+        let completedSession = session(day: 18, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true)
+        seedSessions([completedSession], in: completedContainer)
+        let completedStore = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: completedContainer,
+            now: { date(day: 18, hour: 10, minute: 0) }
+        )
+        completedStore.dailyGoalSessions = 1
+        completedStore.weeklyGoalSessions = 4
+
+        let completedFeedback = completedStore.completionFeedback(for: completedSession, outcome: .completed)
+
+        #expect(completedFeedback.kind == .focusWin)
+        #expect(completedFeedback.title == "+1 Fokus-Sieg")
+        #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
+        #expect(completedFeedback.offersRescueAction == false)
+
+        let progressedContainer = makeModelContainer()
+        let progressedSession = session(day: 18, startHour: 11, startMinute: 0, outcome: .progressed, isOutcomeTracked: true)
+        seedSessions([progressedSession], in: progressedContainer)
+        let progressedStore = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: progressedContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+        progressedStore.dailyGoalSessions = 1
+        progressedStore.weeklyGoalSessions = 4
+
+        let progressedFeedback = progressedStore.completionFeedback(for: progressedSession, outcome: .progressed)
+
+        #expect(progressedFeedback.kind == .focusWin)
+        #expect(progressedFeedback.title == "+1 Fokus-Sieg")
+        #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
+    }
+
+    @Test func rescueSessionRestoresAndSavesOutcome() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        store.startRescueFocus()
+
+        #expect(store.status == .running)
+        #expect(store.activePlannedMinutes == 10)
+        #expect(store.activeFocusIntentText == "Tag retten")
+        #expect(store.activeIsRescueSession)
+
+        now = date(hour: 9, minute: 5)
+        let restored = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        #expect(restored.status == .running)
+        #expect(restored.activeIsRescueSession)
+        #expect(restored.remainingSeconds == 300)
+
+        now = date(hour: 9, minute: 10)
+        restored.tick()
+
+        #expect(restored.pendingOutcomeSession?.isRescue == true)
+        #expect(restored.pendingOutcomeSession?.plannedMinutes == 10)
+        #expect(restored.pendingOutcomeSession?.intentTitle == "Tag retten")
+
+        restored.completePendingOutcome(.completed)
+
+        #expect(restored.pendingOutcomeSession == nil)
+        #expect(restored.sessionHistory.count == 1)
+        #expect(restored.sessionHistory[0].isRescue)
+        #expect(restored.sessionHistory[0].outcome == .completed)
+    }
+
+    @Test func rescueCountsForMomentumButNotGoalsOrStreak() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.dailyGoalSessions = 1
+        store.weeklyGoalSessions = 1
+        store.startRescueFocus()
+        now = date(hour: 9, minute: 10)
+        store.tick()
+        store.completePendingOutcome(.completed)
+
+        let summary = store.weekSummary(containing: date(hour: 12, minute: 0))
+
+        #expect(store.focusWinsToday == 0)
+        #expect(store.dailyGoalProgress == 0)
+        #expect(summary.focusWinCount == 0)
+        #expect(summary.goalProgress == 0)
+        #expect(store.streakSummary.currentDays == 0)
+        #expect(store.momentumSummary.activeDayCount == 1)
+        #expect(store.momentumSummary.hasActivityToday)
+    }
+
+    @Test func completionFeedbackSummarizesRescueAsMomentum() async {
+        let modelContainer = makeModelContainer()
+        let rescueSession = session(
+            day: 18,
+            startHour: 9,
+            startMinute: 0,
+            durationMinutes: PomodoroStore.rescueMinutes,
+            outcome: .completed,
+            isOutcomeTracked: true,
+            isRescue: true
+        )
+        seedSessions([rescueSession], in: modelContainer)
+        let store = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 10, minute: 0) }
+        )
+        store.weeklyGoalSessions = 4
+
+        let feedback = store.completionFeedback(for: rescueSession, outcome: .completed)
+
+        #expect(feedback.kind == .momentum)
+        #expect(feedback.title == "Momentum erreicht")
+        #expect(feedback.detail == "10-min Rescue · Diese Woche 0/4")
+        #expect(feedback.offersRescueAction == false)
+    }
+
+    @Test func momentumCountsLastSevenActiveDaysAndIgnoresPendingOutcomes() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(day: 17, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 18, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 19, startHour: 9, startMinute: 0, outcome: .blocked, isOutcomeTracked: true),
+                session(day: 20, startHour: 9, startMinute: 0),
+                session(day: 21, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true, isRescue: true),
+                session(day: 22, startHour: 9, startMinute: 0, outcome: nil, isOutcomeTracked: true)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 24, hour: 12, minute: 0) }
+        )
+
+        let summary = store.momentumSummary
+
+        #expect(summary.days.map(\.date) == (18...24).map { date(day: $0, hour: 0, minute: 0) })
+        #expect(summary.days.map(\.hasActivity) == [true, true, true, true, false, false, false])
+        #expect(summary.activeDayCount == 4)
+        #expect(summary.hasActivityToday == false)
+    }
+
+    @Test func weeklyQuestStatusTextCoversOnCourseOpenAndAchieved() async {
+        let onCourseContainer = makeModelContainer()
+        seedSessions(makeSessions(day: 18, count: 1) + makeSessions(day: 19, count: 1) + makeSessions(day: 20, count: 1), in: onCourseContainer)
+        let onCourse = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: onCourseContainer,
+            now: { date(day: 20, hour: 12, minute: 0) }
+        )
+        onCourse.weeklyGoalSessions = 6
+
+        let openContainer = makeModelContainer()
+        seedSessions(makeSessions(day: 18, count: 1), in: openContainer)
+        let open = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: openContainer,
+            now: { date(day: 20, hour: 12, minute: 0) }
+        )
+        open.weeklyGoalSessions = 6
+
+        let achievedContainer = makeModelContainer()
+        seedSessions(makeSessions(day: 18, count: 6), in: achievedContainer)
+        let achieved = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: achievedContainer,
+            now: { date(day: 20, hour: 12, minute: 0) }
+        )
+        achieved.weeklyGoalSessions = 6
+
+        #expect(onCourse.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Du bist auf Kurs")
+        #expect(open.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Noch 5 bis zur starken Woche")
+        #expect(achieved.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Starke Woche geschafft")
+    }
+
+    @Test func blockerDetailsPersistWithOutcome() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        store.start()
+        now = date(hour: 9, minute: 25)
+        store.tick()
+        store.completePendingOutcome(
+            .blocked,
+            blockerReason: .tooLarge,
+            blockerNextStep: "  Aufgabe in einen ersten Absatz schneiden  "
+        )
+
+        let restored = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+        let savedSession = restored.sessionHistory[0]
+
+        #expect(savedSession.outcome == .blocked)
+        #expect(savedSession.blockerReason == .tooLarge)
+        #expect(savedSession.blockerNextStep == "Aufgabe in einen ersten Absatz schneiden")
+    }
+
+    @Test func completionFeedbackSummarizesBlockerAndOffersReset() async {
+        let modelContainer = makeModelContainer()
+        let blockedSession = session(
+            day: 18,
+            startHour: 9,
+            startMinute: 0,
+            outcome: .blocked,
+            isOutcomeTracked: true,
+            blockerReason: .tooLarge,
+            blockerNextStep: "Ticket schneiden"
+        )
+        seedSessions([blockedSession], in: modelContainer)
+        let store = makeStore(
+            defaults: makeDefaults(),
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 10, minute: 0) }
+        )
+
+        let feedback = store.completionFeedback(for: blockedSession, outcome: .blocked)
+
+        #expect(feedback.kind == .blocked)
+        #expect(feedback.title == "Blockade notiert")
+        #expect(feedback.detail == "Diese Woche 1x blockiert · häufig: Zu groß")
+        #expect(feedback.offersRescueAction)
+    }
+
+    @Test func blockerSummaryCountsCurrentWeekAndSortsMostCommonReason() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(day: 11, startHour: 9, startMinute: 0, outcome: .blocked, isOutcomeTracked: true, blockerReason: .tooLarge),
+                session(day: 18, startHour: 9, startMinute: 0, outcome: .blocked, isOutcomeTracked: true, blockerReason: .unclearNextStep, blockerNextStep: "Ticket teilen"),
+                session(day: 19, startHour: 9, startMinute: 0, outcome: .blocked, isOutcomeTracked: true, blockerReason: .waiting, blockerNextStep: "Antwort von Lisa prüfen"),
+                session(day: 20, startHour: 9, startMinute: 0, outcome: .blocked, isOutcomeTracked: true, blockerReason: .unclearNextStep),
+                session(day: 20, startHour: 10, startMinute: 0, outcome: .progressed, isOutcomeTracked: true)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 20, hour: 12, minute: 0) }
+        )
+
+        let summary = store.blockerSummary(containing: date(day: 20, hour: 12, minute: 0))
+
+        #expect(summary.blockedCount == 3)
+        #expect(summary.mostCommonReason == .unclearNextStep)
+        #expect(summary.nextSteps == ["Ticket teilen", "Antwort von Lisa prüfen"])
+    }
+
+    @Test func focusHeatOnlyAppliesToActiveFocusProgress() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        #expect(store.focusHeatIntensity == 0)
+
+        store.start()
+        #expect(store.focusHeatIntensity == 0)
+
+        now = date(hour: 9, minute: 10)
+        store.tick()
+        let earlyHeat = store.focusHeatIntensity
+
+        now = date(hour: 9, minute: 20)
+        store.tick()
+
+        #expect(earlyHeat > 0)
+        #expect(store.focusHeatIntensity > earlyHeat)
+
+        store.pause()
+        let pausedHeat = store.focusHeatIntensity
+        now = date(hour: 9, minute: 22)
+        store.tick()
+
+        #expect(store.focusHeatIntensity == pausedHeat)
+    }
+
+    @Test func focusHeatClearsForPendingOutcomeAndBreak() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.start()
+        now = date(hour: 9, minute: 25)
+        store.tick()
+
+        #expect(store.pendingOutcomeSession != nil)
+        #expect(store.focusHeatIntensity == 0)
+
+        store.completePendingOutcome(.completed)
+        store.startBreak()
+
+        #expect(store.activeTimerKind == .breakTime)
+        #expect(store.focusHeatIntensity == 0)
     }
 
     @Test func pauseBetweenSessionsIsMeasuredFromPreviousCompletion() async {
@@ -339,6 +653,50 @@ struct TimerTomatoTests {
         #expect(secondDay?.sessionCount == 2)
         #expect(secondDay?.focusWinCount == 2)
         #expect(secondDay?.focusMinutes == 50)
+    }
+
+    @Test func historyDayAnalysisDerivesOutcomesRescueMomentumAndBlockers() async {
+        let day = PomodoroHistoryDay(
+            date: date(day: 18, hour: 0, minute: 0),
+            sessions: [
+                session(day: 18, startHour: 8, startMinute: 0, outcome: .completed, isOutcomeTracked: true),
+                session(day: 18, startHour: 8, startMinute: 30, outcome: .completed, isOutcomeTracked: true, isRescue: true),
+                session(day: 18, startHour: 9, startMinute: 0, outcome: .progressed, isOutcomeTracked: true),
+                session(day: 18, startHour: 9, startMinute: 30, outcome: .blocked, isOutcomeTracked: true, blockerReason: .unclearNextStep, blockerNextStep: "Erster Schritt"),
+                session(day: 18, startHour: 10, startMinute: 0, outcome: .blocked, isOutcomeTracked: true, blockerReason: .unclearNextStep),
+                session(day: 18, startHour: 10, startMinute: 30, outcome: .blocked, isOutcomeTracked: true, blockerReason: .waiting, blockerNextStep: "Neuester Schritt"),
+                session(day: 18, startHour: 11, startMinute: 0),
+                session(day: 18, startHour: 11, startMinute: 30, outcome: nil, isOutcomeTracked: true)
+            ],
+            dailyGoalSessions: 2
+        )
+        let pendingOnlyDay = PomodoroHistoryDay(
+            date: date(day: 19, hour: 0, minute: 0),
+            sessions: [
+                session(day: 19, startHour: 9, startMinute: 0, outcome: nil, isOutcomeTracked: true)
+            ],
+            dailyGoalSessions: 2
+        )
+        let nonBlockedReasonDay = PomodoroHistoryDay(
+            date: date(day: 20, hour: 0, minute: 0),
+            sessions: [
+                session(day: 20, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true, blockerReason: .waiting, blockerNextStep: "Nicht anzeigen")
+            ],
+            dailyGoalSessions: 2
+        )
+
+        #expect(day.focusWinCount == 3)
+        #expect(day.completedOutcomeCount == 2)
+        #expect(day.progressedOutcomeCount == 1)
+        #expect(day.blockedOutcomeCount == 3)
+        #expect(day.rescueCount == 1)
+        #expect(day.hasMomentumActivity)
+        #expect(day.primaryBlockerReason == .unclearNextStep)
+        #expect(day.latestBlockerNextStep == "Neuester Schritt")
+        #expect(pendingOnlyDay.hasMomentumActivity == false)
+        #expect(pendingOnlyDay.completedOutcomeCount == 0)
+        #expect(nonBlockedReasonDay.primaryBlockerReason == nil)
+        #expect(nonBlockedReasonDay.latestBlockerNextStep == nil)
     }
 
     @Test func weeklyGoalSuggestionUsesCompletedWeeksOnly() async {
@@ -750,7 +1108,10 @@ struct TimerTomatoTests {
         durationMinutes: Int = PomodoroStore.defaultMinutes,
         intent: String? = nil,
         outcome: PomodoroSessionOutcome? = nil,
-        isOutcomeTracked: Bool = false
+        isOutcomeTracked: Bool = false,
+        isRescue: Bool = false,
+        blockerReason: PomodoroBlockerReason? = nil,
+        blockerNextStep: String? = nil
     ) -> PomodoroSession {
         let startedAt = date(day: day, hour: startHour, minute: startMinute)
         let endedAt = testCalendar.date(byAdding: .minute, value: durationMinutes, to: startedAt) ?? startedAt
@@ -762,7 +1123,10 @@ struct TimerTomatoTests {
             pauseBeforeSeconds: nil,
             intent: intent,
             outcome: outcome,
-            isOutcomeTracked: isOutcomeTracked
+            isOutcomeTracked: isOutcomeTracked,
+            isRescue: isRescue,
+            blockerReason: blockerReason,
+            blockerNextStep: blockerNextStep
         )
     }
 

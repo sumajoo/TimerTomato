@@ -64,6 +64,9 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
     let intent: String?
     let outcome: PomodoroSessionOutcome?
     let isOutcomeTracked: Bool
+    let isRescue: Bool
+    let blockerReason: PomodoroBlockerReason?
+    let blockerNextStep: String?
 
     var focusSeconds: TimeInterval {
         endedAt.timeIntervalSince(startedAt)
@@ -82,7 +85,15 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
     }
 
     var isFocusWin: Bool {
-        !isOutcomeTracked || outcome?.countsAsFocusWin == true
+        !isRescue && (!isOutcomeTracked || outcome?.countsAsFocusWin == true)
+    }
+
+    var countsAsMomentumActivity: Bool {
+        if isPendingOutcome {
+            return false
+        }
+
+        return !isOutcomeTracked || outcome != nil
     }
 
     init(
@@ -93,7 +104,10 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         pauseBeforeSeconds: TimeInterval?,
         intent: String? = nil,
         outcome: PomodoroSessionOutcome? = nil,
-        isOutcomeTracked: Bool = false
+        isOutcomeTracked: Bool = false,
+        isRescue: Bool = false,
+        blockerReason: PomodoroBlockerReason? = nil,
+        blockerNextStep: String? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -103,6 +117,9 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         self.intent = Self.normalizedIntent(intent)
         self.outcome = outcome
         self.isOutcomeTracked = isOutcomeTracked
+        self.isRescue = isRescue
+        self.blockerReason = blockerReason
+        self.blockerNextStep = Self.normalizedIntent(blockerNextStep)
     }
 
     init(from decoder: any Decoder) throws {
@@ -116,6 +133,9 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         intent = Self.normalizedIntent(try container.decodeIfPresent(String.self, forKey: .intent))
         outcome = try container.decodeIfPresent(PomodoroSessionOutcome.self, forKey: .outcome)
         isOutcomeTracked = try container.decodeIfPresent(Bool.self, forKey: .isOutcomeTracked) ?? false
+        isRescue = try container.decodeIfPresent(Bool.self, forKey: .isRescue) ?? false
+        blockerReason = try container.decodeIfPresent(PomodoroBlockerReason.self, forKey: .blockerReason)
+        blockerNextStep = Self.normalizedIntent(try container.decodeIfPresent(String.self, forKey: .blockerNextStep))
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -129,6 +149,9 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         try container.encodeIfPresent(intent, forKey: .intent)
         try container.encodeIfPresent(outcome, forKey: .outcome)
         try container.encode(isOutcomeTracked, forKey: .isOutcomeTracked)
+        try container.encode(isRescue, forKey: .isRescue)
+        try container.encodeIfPresent(blockerReason, forKey: .blockerReason)
+        try container.encodeIfPresent(blockerNextStep, forKey: .blockerNextStep)
     }
 
     nonisolated static func normalizedIntent(_ intent: String?) -> String? {
@@ -149,5 +172,8 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         case intent
         case outcome
         case isOutcomeTracked
+        case isRescue
+        case blockerReason
+        case blockerNextStep
     }
 }
