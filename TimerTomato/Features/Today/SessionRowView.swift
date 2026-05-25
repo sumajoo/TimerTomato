@@ -122,7 +122,7 @@ struct SessionRowView: View {
 }
 
 #if DEBUG
-#Preview("Sitzungszeile") {
+#Preview("Sessionzeile") {
     SessionRowView(
         session: TimerTomatoPreviewData.sampleSession
     )

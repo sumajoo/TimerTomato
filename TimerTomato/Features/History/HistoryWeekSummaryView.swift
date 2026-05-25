@@ -132,7 +132,7 @@ struct HistoryWeekSummaryView: View {
                     .font(.callout)
                     .bold()
 
-                Text("Diese Woche: \(weekSummary.goalCountText) Fokus-Siege")
+                Text("Diese Woche: \(weekSummary.goalCountText) Sessions")
                     .font(.footnote)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
                     .lineLimit(1)

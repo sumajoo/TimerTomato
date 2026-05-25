@@ -54,6 +54,6 @@ struct WeeklyDayProgressView: View {
                 .foregroundStyle(day.focusWinCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
         }
         .frame(maxWidth: .infinity)
-        .accessibilityLabel("\(weekdayText), \(day.focusWinCount) Fokus-Siege")
+        .accessibilityLabel("\(weekdayText), \(day.focusWinCount) Sessions")
     }
 }

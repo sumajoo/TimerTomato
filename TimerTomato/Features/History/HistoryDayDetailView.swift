@@ -22,14 +22,13 @@ struct HistoryDayDetailView: View {
     private var summaryText: String {
         PomodoroFormatters.focusWinsSummaryText(
             focusWins: day.focusWinCount,
-            sessions: day.sessionCount,
             focusMinutes: day.focusMinutes,
             averagePauseSeconds: nil
         )
     }
 
-    private var focusWinUnitText: String {
-        day.focusWinCount == 1 ? "Fokus-Sieg" : "Fokus-Siege"
+    private var focusRoundUnitText: String {
+        day.focusWinCount == 1 ? "Session" : "Sessions"
     }
 
     private var minuteUnitText: String {
@@ -42,7 +41,7 @@ struct HistoryDayDetailView: View {
         }
 
         let remainingWins = store.dailyGoalSessions - day.focusWinCount
-        let unit = remainingWins == 1 ? "Fokus-Sieg" : "Fokus-Siege"
+        let unit = remainingWins == 1 ? "Session" : "Sessions"
         return "Noch \(remainingWins) \(unit) bis zum Ziel"
     }
 
@@ -75,7 +74,7 @@ struct HistoryDayDetailView: View {
                             .font(.callout)
                             .bold()
 
-                        Text(day.sessions.isEmpty ? "Keine Sitzungen" : summaryText)
+                        Text(day.sessions.isEmpty ? "Keine Sessions" : summaryText)
                             .font(.footnote)
                             .foregroundStyle(TimerTomatoDesign.secondaryText)
                     }
@@ -113,7 +112,7 @@ struct HistoryDayDetailView: View {
                     .monospacedDigit()
                     .bold()
 
-                Text(focusWinUnitText)
+                Text(focusRoundUnitText)
                     .font(.footnote)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
             }

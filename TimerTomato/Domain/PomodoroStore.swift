@@ -222,7 +222,6 @@ final class PomodoroStore {
     var todaySummaryText: String {
         PomodoroFormatters.focusWinsSummaryText(
             focusWins: focusWinsToday,
-            sessions: sessionsCompletedToday,
             focusMinutes: focusMinutesToday,
             averagePauseSeconds: averagePauseSecondsToday
         )
@@ -246,7 +245,7 @@ final class PomodoroStore {
         }
 
         let remainingWins = dailyGoalSessions - focusWinsToday
-        let unit = remainingWins == 1 ? "Fokus-Sieg" : "Fokus-Siege"
+        let unit = remainingWins == 1 ? "Session" : "Sessions"
         return "Noch \(remainingWins) \(unit)"
     }
 
@@ -551,7 +550,7 @@ final class PomodoroStore {
 
         return PomodoroCompletionFeedback(
             kind: .focusWin,
-            title: "+1 Fokus-Sieg",
+            title: "+1 Session",
             detail: "Heute \(day.goalCountText) · Diese Woche \(weekText) · Streak: \(streakText)",
             offersRescueAction: false
         )
@@ -620,7 +619,8 @@ final class PomodoroStore {
             }
         }
 
-        return "Noch \(summary.remainingFocusWins) bis zur starken Woche"
+        let unit = summary.remainingFocusWins == 1 ? "Session" : "Sessions"
+        return "Noch \(summary.remainingFocusWins) \(unit) bis zur starken Woche"
     }
 
     func momentumSummary(endingAt date: Date) -> PomodoroMomentumSummary {

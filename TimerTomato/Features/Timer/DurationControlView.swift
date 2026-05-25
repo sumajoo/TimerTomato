@@ -24,7 +24,7 @@ struct DurationControlView: View {
                             .bold()
 
                         if showsDetailText {
-                            Text("Ab nächster Sitzung")
+                            Text("Ab nächster Session")
                                 .font(.footnote)
                                 .foregroundStyle(TimerTomatoDesign.tertiaryText)
                         }

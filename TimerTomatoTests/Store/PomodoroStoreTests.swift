@@ -203,7 +203,7 @@ struct TimerTomatoTests {
         let completedFeedback = completedStore.completionFeedback(for: completedSession, outcome: .completed)
 
         #expect(completedFeedback.kind == .focusWin)
-        #expect(completedFeedback.title == "+1 Fokus-Sieg")
+        #expect(completedFeedback.title == "+1 Session")
         #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
         #expect(completedFeedback.offersRescueAction == false)
 
@@ -221,7 +221,7 @@ struct TimerTomatoTests {
         let progressedFeedback = progressedStore.completionFeedback(for: progressedSession, outcome: .progressed)
 
         #expect(progressedFeedback.kind == .focusWin)
-        #expect(progressedFeedback.title == "+1 Fokus-Sieg")
+        #expect(progressedFeedback.title == "+1 Session")
         #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
     }
 
@@ -367,7 +367,7 @@ struct TimerTomatoTests {
         achieved.weeklyGoalSessions = 6
 
         #expect(onCourse.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Du bist auf Kurs")
-        #expect(open.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Noch 5 bis zur starken Woche")
+        #expect(open.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Noch 5 Sessions bis zur starken Woche")
         #expect(achieved.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Starke Woche geschafft")
     }
 
@@ -534,9 +534,9 @@ struct TimerTomatoTests {
         #expect(store.averagePauseSecondsToday == 540)
         #expect(store.dailyGoalProgress == 0.5)
         #expect(store.dailyGoalCountText == "2/4")
-        #expect(store.dailyGoalStatusText == "Noch 2 Fokus-Siege")
+        #expect(store.dailyGoalStatusText == "Noch 2 Sessions")
         #expect(store.compactTodaySummaryText == "2 · 50 min")
-        #expect(store.todaySummaryText == "2 Siege · 2 Sitzungen · 50 min · Ø Pause 9 min")
+        #expect(store.todaySummaryText == "2 Sessions · 50 min · Ø Pause 9 min")
     }
 
     @Test func breakTimerCompletesWithoutRecordingSession() async {
