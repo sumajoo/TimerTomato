@@ -28,6 +28,7 @@ struct TimerControlsView: View {
             case .idle:
                 Button("Fokus starten", systemImage: "play.fill", action: store.start)
                     .frame(width: primaryButtonWidth)
+                    .timerTomatoHitTarget(minWidth: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(TimerTomatoDesign.tomato)
                     .disabled(!store.canStartFocus)
@@ -38,19 +39,21 @@ struct TimerControlsView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
                         .foregroundStyle(TimerTomatoDesign.mint)
-                        .frame(width: 38)
+                        .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
                         .help("5 Minuten Pause starten")
                         .glassEffectID("timer-break-control", in: glassNamespace)
                 }
             case .running:
                 Button("Pause", systemImage: "pause.fill", action: store.pause)
                     .frame(width: primaryButtonWidth)
+                    .timerTomatoHitTarget(minWidth: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(accentColor)
                     .glassEffectID("timer-primary-control", in: glassNamespace)
             case .paused:
                 Button("Fortsetzen", systemImage: "play.fill", action: store.resume)
                     .frame(width: primaryButtonWidth)
+                    .timerTomatoHitTarget(minWidth: primaryButtonWidth)
                     .buttonStyle(.glassProminent)
                     .tint(accentColor)
                     .glassEffectID("timer-primary-control", in: glassNamespace)
@@ -61,7 +64,7 @@ struct TimerControlsView: View {
                     .labelStyle(.iconOnly)
                     .buttonStyle(.glass)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
-                    .frame(width: 38)
+                    .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
                     .help("Zurücksetzen")
                     .glassEffectID("timer-reset-control", in: glassNamespace)
             }

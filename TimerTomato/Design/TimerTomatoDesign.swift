@@ -17,6 +17,7 @@ enum TimerTomatoDesign {
     static let historyContentWidth: CGFloat = contentWidth + 36
     static let contentPadding: CGFloat = 16
     static let cardBorderWidth: CGFloat = 1
+    static let minimumHitTarget: CGFloat = 44
 
     static let tomato = adaptiveColor(
         light: color(red: 0.82, green: 0.18, blue: 0.14),
@@ -194,5 +195,13 @@ private struct TimerTomatoCardModifier: ViewModifier {
 extension View {
     func timerTomatoCard(_ variant: TimerTomatoCardVariant, isInteractive: Bool = false) -> some View {
         modifier(TimerTomatoCardModifier(variant: variant, isInteractive: isInteractive))
+    }
+
+    func timerTomatoHitTarget(
+        minWidth: CGFloat = TimerTomatoDesign.minimumHitTarget,
+        minHeight: CGFloat = TimerTomatoDesign.minimumHitTarget
+    ) -> some View {
+        frame(minWidth: minWidth, minHeight: minHeight)
+            .contentShape(Rectangle())
     }
 }

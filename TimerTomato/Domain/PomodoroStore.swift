@@ -27,7 +27,7 @@ final class PomodoroStore {
     static let maximumWeeklyGoalSessions = maximumDailyGoalSessions * 7
     static let durationPresets = [10, 15, 25, 45, 60]
     static let focusIntentSuggestions = ["Entwurf schreiben", "Bug fixen", "Inbox leeren", "Lernen"]
-    static let rescueFocusIntent = "Tag retten"
+    static let rescueFocusIntent = "Kurz dranbleiben"
     static let maximumFocusIntentCharacters = 44
 
     var selectedMinutes = PomodoroStore.defaultMinutes {
@@ -535,8 +535,8 @@ final class PomodoroStore {
         if session.isRescue {
             return PomodoroCompletionFeedback(
                 kind: .momentum,
-                title: "Momentum erreicht",
-                detail: "\(session.plannedMinutes)-min Rescue · Diese Woche \(weekText)",
+                title: "Drangeblieben",
+                detail: "\(session.plannedMinutes)-min Reset · Diese Woche \(weekText)",
                 offersRescueAction: false
             )
         }
@@ -551,7 +551,7 @@ final class PomodoroStore {
         return PomodoroCompletionFeedback(
             kind: .focusWin,
             title: "+1 Session",
-            detail: "Heute \(day.goalCountText) · Diese Woche \(weekText) · Streak: \(streakText)",
+            detail: "Heute \(day.goalCountText) · Diese Woche \(weekText) · Ziel-Serie: \(streakText)",
             offersRescueAction: false
         )
     }

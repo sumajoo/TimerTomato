@@ -204,7 +204,7 @@ struct TimerTomatoTests {
 
         #expect(completedFeedback.kind == .focusWin)
         #expect(completedFeedback.title == "+1 Session")
-        #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
+        #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
         #expect(completedFeedback.offersRescueAction == false)
 
         let progressedContainer = makeModelContainer()
@@ -222,7 +222,7 @@ struct TimerTomatoTests {
 
         #expect(progressedFeedback.kind == .focusWin)
         #expect(progressedFeedback.title == "+1 Session")
-        #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
+        #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
     }
 
     @Test func rescueSessionRestoresAndSavesOutcome() async {
@@ -235,7 +235,7 @@ struct TimerTomatoTests {
 
         #expect(store.status == .running)
         #expect(store.activePlannedMinutes == 10)
-        #expect(store.activeFocusIntentText == "Tag retten")
+        #expect(store.activeFocusIntentText == "Kurz dranbleiben")
         #expect(store.activeIsRescueSession)
 
         now = date(hour: 9, minute: 5)
@@ -250,7 +250,7 @@ struct TimerTomatoTests {
 
         #expect(restored.pendingOutcomeSession?.isRescue == true)
         #expect(restored.pendingOutcomeSession?.plannedMinutes == 10)
-        #expect(restored.pendingOutcomeSession?.intentTitle == "Tag retten")
+        #expect(restored.pendingOutcomeSession?.intentTitle == "Kurz dranbleiben")
 
         restored.completePendingOutcome(.completed)
 
@@ -305,8 +305,8 @@ struct TimerTomatoTests {
         let feedback = store.completionFeedback(for: rescueSession, outcome: .completed)
 
         #expect(feedback.kind == .momentum)
-        #expect(feedback.title == "Momentum erreicht")
-        #expect(feedback.detail == "10-min Rescue · Diese Woche 0/4")
+        #expect(feedback.title == "Drangeblieben")
+        #expect(feedback.detail == "10-min Reset · Diese Woche 0/4")
         #expect(feedback.offersRescueAction == false)
     }
 

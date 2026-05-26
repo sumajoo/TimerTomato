@@ -158,11 +158,11 @@ struct HistoryDayDetailView: View {
                 if hasStatusInsights {
                     HStack(spacing: 7) {
                         if day.rescueCount > 0 {
-                            insightChip("Rescue \(day.rescueCount)", systemImage: "bolt.circle.fill", tint: TimerTomatoDesign.mint)
+                            insightChip("Reset \(day.rescueCount)", systemImage: "bolt.circle.fill", tint: TimerTomatoDesign.mint)
                         }
 
                         if day.hasMomentumActivity {
-                            insightChip("Momentum erreicht", systemImage: "sparkles", tint: TimerTomatoDesign.mint)
+                            insightChip("Drangeblieben", systemImage: "sparkles", tint: TimerTomatoDesign.mint)
                         }
 
                         Spacer(minLength: 0)
