@@ -5,7 +5,6 @@
 //  Created by Jonas Becker on 24.05.26.
 //
 
-import AppKit
 import SwiftUI
 
 struct MenuBarContentView: View {
@@ -25,19 +24,6 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var todayContentMaxHeight: CGFloat {
-        min(320, max(180, visibleScreenHeight - 575))
-    }
-
-    private var visibleScreenHeight: CGFloat {
-        let mouseLocation = NSEvent.mouseLocation
-        let currentScreen = NSScreen.screens.first { screen in
-            screen.frame.contains(mouseLocation)
-        }
-
-        return currentScreen?.visibleFrame.height ?? NSScreen.main?.visibleFrame.height ?? 800
-    }
-
     private var mainView: some View {
         VStack(spacing: 0) {
             MenuBarHeaderView(store: store, showHistory: showHistory)
@@ -48,7 +34,7 @@ struct MenuBarContentView: View {
             DurationControlView(store: store)
                 .padding(.top, 12)
 
-            SessionListView(store: store, maxContentHeight: todayContentMaxHeight)
+            SessionListView(store: store)
                 .padding(.top, 18)
         }
     }

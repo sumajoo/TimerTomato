@@ -9,7 +9,8 @@ import SwiftUI
 
 struct SessionListView: View {
     let store: PomodoroStore
-    let maxContentHeight: CGFloat?
+
+    private let sessionRowsMaxHeight: CGFloat = 172
 
     private var sessions: [PomodoroSession] {
         store.sessions
@@ -28,29 +29,27 @@ struct SessionListView: View {
                 .imageScale(.small)
                 .padding(.horizontal, 4)
 
-            ScrollView(.vertical) {
-                VStack(spacing: 14) {
-                    TodayStatsView(store: store)
+            TodayStatsView(store: store)
 
-                    if sessions.isEmpty {
-                        GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
-                            SessionEmptyStateView()
-                        }
-                    } else {
-                        GlassEffectContainer(spacing: 14) {
-                            VStack(spacing: 14) {
-                                ForEach(orderedSessions) { session in
-                                    SessionRowView(session: session)
-                                }
+            if sessions.isEmpty {
+                GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
+                    SessionEmptyStateView()
+                }
+            } else {
+                ScrollView(.vertical) {
+                    GlassEffectContainer(spacing: 14) {
+                        VStack(spacing: 14) {
+                            ForEach(orderedSessions) { session in
+                                SessionRowView(session: session)
                             }
                         }
                     }
+                    .padding(.horizontal, 2)
+                    .padding(.bottom, 6)
                 }
-                .padding(.horizontal, 2)
-                .padding(.bottom, 6)
+                .scrollIndicators(.automatic)
+                .frame(maxHeight: sessionRowsMaxHeight)
             }
-            .scrollIndicators(.automatic)
-            .frame(maxHeight: maxContentHeight)
         }
     }
 }
@@ -58,8 +57,7 @@ struct SessionListView: View {
 #if DEBUG
 #Preview("Heute Liste") {
     SessionListView(
-        store: TimerTomatoPreviewData.store(),
-        maxContentHeight: 320
+        store: TimerTomatoPreviewData.store()
     )
     .padding()
     .frame(width: TimerTomatoDesign.contentWidth)
