@@ -88,7 +88,9 @@ struct TimerStatusView: View {
                         CompletionFeedbackView(
                             feedback: completionFeedback,
                             canStartRescue: store.canStartFocus,
-                            startRescue: startRescueFromFeedback
+                            canContinueFocus: store.canStartFocus,
+                            startRescue: startRescueFromFeedback,
+                            continueFocus: continueFocusFromFeedback
                         )
                     }
 
@@ -136,6 +138,11 @@ struct TimerStatusView: View {
     private func startRescueFromFeedback() {
         clearCompletionFeedback()
         store.startRescueFocus()
+    }
+
+    private func continueFocusFromFeedback(_ intent: String) {
+        clearCompletionFeedback()
+        store.continueFocus(with: intent)
     }
 
     private func clearCompletionFeedback() {
@@ -649,7 +656,9 @@ private struct FocusOutcomePromptView: View {
 private struct CompletionFeedbackView: View {
     let feedback: PomodoroCompletionFeedback
     let canStartRescue: Bool
+    let canContinueFocus: Bool
     let startRescue: () -> Void
+    let continueFocus: (String) -> Void
 
     private var tint: Color {
         switch feedback.kind {
@@ -693,6 +702,10 @@ private struct CompletionFeedbackView: View {
 
             Spacer(minLength: 4)
 
+            if let continuationIntent = feedback.continuationIntent, canContinueFocus {
+                continueButton(intent: continuationIntent)
+            }
+
             if feedback.offersRescueAction && canStartRescue {
                 Button("10-min Reset", systemImage: "bolt.fill", action: startRescue)
                     .font(.caption2.bold())
@@ -726,6 +739,32 @@ private struct CompletionFeedbackView: View {
                 }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private func continueButton(intent: String) -> some View {
+        let topicTitle = PomodoroFormatters.topicTitle(intent)
+
+        return Button("Weiter mit \(topicTitle)", systemImage: "arrow.up.right") {
+            continueFocus(intent)
+        }
+        .font(.caption2.bold())
+        .labelStyle(.titleAndIcon)
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
+        .foregroundStyle(TimerTomatoDesign.mint)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: 136, minHeight: TimerTomatoDesign.minimumHitTarget)
+        .background {
+            Capsule()
+                .fill(TimerTomatoDesign.surfaceFill)
+                .overlay {
+                    Capsule()
+                        .fill(TimerTomatoDesign.mint.opacity(0.10))
+                }
+        }
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .buttonStyle(.plain)
+        .help("Nächste Session mit \(topicTitle) starten")
     }
 }
 

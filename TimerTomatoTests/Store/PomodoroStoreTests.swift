@@ -410,7 +410,7 @@ struct TimerTomatoTests {
 
     @Test func completionFeedbackSummarizesCompletedAndProgressedFocusWins() async {
         let completedContainer = makeModelContainer()
-        let completedSession = session(day: 18, startHour: 9, startMinute: 0, outcome: .completed, isOutcomeTracked: true)
+        let completedSession = session(day: 18, startHour: 9, startMinute: 0, intent: "Bug fixen", outcome: .completed, isOutcomeTracked: true)
         seedSessions([completedSession], in: completedContainer)
         let completedStore = makeStore(
             defaults: makeDefaults(),
@@ -424,11 +424,12 @@ struct TimerTomatoTests {
 
         #expect(completedFeedback.kind == .focusWin)
         #expect(completedFeedback.title == "+1 Session")
-        #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
+        #expect(completedFeedback.detail == "Abgeschlossen · Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
+        #expect(completedFeedback.continuationIntent == nil)
         #expect(completedFeedback.offersRescueAction == false)
 
         let progressedContainer = makeModelContainer()
-        let progressedSession = session(day: 18, startHour: 11, startMinute: 0, outcome: .progressed, isOutcomeTracked: true)
+        let progressedSession = session(day: 18, startHour: 11, startMinute: 0, intent: "Lernen", outcome: .progressed, isOutcomeTracked: true)
         seedSessions([progressedSession], in: progressedContainer)
         let progressedStore = makeStore(
             defaults: makeDefaults(),
@@ -442,7 +443,25 @@ struct TimerTomatoTests {
 
         #expect(progressedFeedback.kind == .focusWin)
         #expect(progressedFeedback.title == "+1 Session")
-        #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
+        #expect(progressedFeedback.detail == "Weiter vorgemerkt · Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
+        #expect(progressedFeedback.continuationIntent == "Lernen")
+        #expect(progressedFeedback.offersRescueAction == false)
+    }
+
+    @Test func continueFocusStartsNextSessionWithIntent() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.continueFocus(with: "  Lernen  ")
+
+        #expect(store.status == .running)
+        #expect(store.activeFocusIntentText == "Lernen")
+        #expect(store.pendingFocusIntent.isEmpty)
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+        #expect(store.pendingOutcomeSession?.intentTitle == "Lernen")
     }
 
     @Test func rescueSessionRestoresAndSavesOutcome() async {

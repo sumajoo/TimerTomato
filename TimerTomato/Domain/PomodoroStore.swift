@@ -404,6 +404,18 @@ final class PomodoroStore {
         requestNotificationAuthorization()
     }
 
+    func continueFocus(with intent: String) {
+        guard
+            canStartFocus,
+            let normalizedIntent = PomodoroSession.normalizedIntent(intent)
+        else {
+            return
+        }
+
+        pendingFocusIntent = normalizedIntent
+        start()
+    }
+
     func pause() {
         updateCurrentDate()
 
@@ -560,6 +572,7 @@ final class PomodoroStore {
                 kind: .blocked,
                 title: "Blockade notiert",
                 detail: blockerFeedbackDetail(containing: session.endedAt),
+                continuationIntent: nil,
                 offersRescueAction: canStartFocus
             )
         }
@@ -569,6 +582,7 @@ final class PomodoroStore {
                 kind: .momentum,
                 title: "Drangeblieben",
                 detail: "\(session.plannedMinutes)-min Reset · Diese Woche \(weekText)",
+                continuationIntent: nil,
                 offersRescueAction: false
             )
         }
@@ -580,10 +594,19 @@ final class PomodoroStore {
         )
         let streakText = streakSummary(endingAt: session.endedAt).currentText
 
+        let continuationIntent = outcome == .progressed ? session.intentTitle : nil
+        let progressPrefix: String
+        if outcome == .progressed {
+            progressPrefix = continuationIntent == nil ? "Weiter" : "Weiter vorgemerkt"
+        } else {
+            progressPrefix = "Abgeschlossen"
+        }
+
         return PomodoroCompletionFeedback(
             kind: .focusWin,
             title: "+1 Session",
-            detail: "Heute \(day.goalCountText) · Diese Woche \(weekText) · Ziel-Serie: \(streakText)",
+            detail: "\(progressPrefix) · Heute \(day.goalCountText) · Diese Woche \(weekText) · Ziel-Serie: \(streakText)",
+            continuationIntent: continuationIntent,
             offersRescueAction: false
         )
     }

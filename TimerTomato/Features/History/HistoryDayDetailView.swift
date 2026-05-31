@@ -62,7 +62,7 @@ struct HistoryDayDetailView: View {
     }
 
     private var hasStatusInsights: Bool {
-        day.rescueCount > 0 || day.hasMomentumActivity
+        day.rescueCount > 0
     }
 
     private var topicSummaries: [PomodoroTopicSummary] {
@@ -191,10 +191,6 @@ struct HistoryDayDetailView: View {
                     HStack(spacing: 7) {
                         if day.rescueCount > 0 {
                             insightChip("Reset \(day.rescueCount)", systemImage: "bolt.circle.fill", tint: TimerTomatoDesign.mint)
-                        }
-
-                        if day.hasMomentumActivity {
-                            insightChip("Drangeblieben", systemImage: "sparkles", tint: TimerTomatoDesign.mint)
                         }
 
                         Spacer(minLength: 0)
