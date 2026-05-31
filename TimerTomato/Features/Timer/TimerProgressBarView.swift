@@ -28,6 +28,8 @@ struct TimerProgressBarView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let fillWidth = proxy.size.width * clampedProgress
+
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(TimerTomatoDesign.trackFill)
@@ -35,14 +37,18 @@ struct TimerProgressBarView: View {
                 if clampedProgress > 0 {
                     Capsule()
                         .fill(tint)
-                        .frame(width: proxy.size.width * clampedProgress)
                         .overlay {
                             Capsule()
                                 .fill(Color.white.opacity(0.08 * clampedHeatIntensity))
                         }
+                        .mask(alignment: .leading) {
+                            Rectangle()
+                                .frame(width: fillWidth)
+                        }
                         .shadow(color: tint.opacity(0.18 * clampedHeatIntensity), radius: 5, x: 0, y: 0)
                 }
             }
+            .clipShape(Capsule())
         }
         .frame(height: 9)
         .accessibilityLabel("Fortschritt")
