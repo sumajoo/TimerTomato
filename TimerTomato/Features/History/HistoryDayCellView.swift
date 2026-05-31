@@ -32,7 +32,7 @@ struct HistoryDayCellView: View {
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
-        .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.focusWinCount) Fokus-Siege")
+        .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.focusWinCount) Sessions")
         .accessibilityHint("Der Balken zeigt den Fortschritt zum Tagesziel.")
         .help("Tagesziel-Fortschritt")
     }

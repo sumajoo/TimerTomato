@@ -11,7 +11,6 @@ struct TimerStatusView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var completionFeedback: PomodoroCompletionFeedback?
-    @State private var feedbackDismissTask: Task<Void, Never>?
 
     @Bindable var store: PomodoroStore
 
@@ -36,7 +35,7 @@ struct TimerStatusView: View {
 
     var body: some View {
         GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
-            VStack(spacing: 17) {
+            VStack(spacing: 14) {
                 VStack(spacing: 4) {
                     Text(store.remainingClockText)
                         .font(.system(.largeTitle, design: .rounded).monospacedDigit())
@@ -100,8 +99,8 @@ struct TimerStatusView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
-            .padding(.top, 22)
-            .padding(.bottom, 18)
+            .padding(.top, 18)
+            .padding(.bottom, 16)
             .background {
                 FocusHeatBackground(intensity: focusHeatIntensity)
             }
@@ -111,9 +110,10 @@ struct TimerStatusView: View {
             }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: focusHeatIntensity)
         }
-        .onDisappear {
-            feedbackDismissTask?.cancel()
-            feedbackDismissTask = nil
+        .onChange(of: store.status) {
+            if store.status == .running {
+                clearCompletionFeedback()
+            }
         }
     }
 
@@ -132,25 +132,16 @@ struct TimerStatusView: View {
     }
 
     private func showCompletionFeedback(_ feedback: PomodoroCompletionFeedback) {
-        feedbackDismissTask?.cancel()
         completionFeedback = feedback
-        feedbackDismissTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-
-            guard !Task.isCancelled else {
-                return
-            }
-
-            completionFeedback = nil
-            feedbackDismissTask = nil
-        }
     }
 
     private func startRescueFromFeedback() {
-        feedbackDismissTask?.cancel()
-        feedbackDismissTask = nil
-        completionFeedback = nil
+        clearCompletionFeedback()
         store.startRescueFocus()
+    }
+
+    private func clearCompletionFeedback() {
+        completionFeedback = nil
     }
 }
 
@@ -188,6 +179,8 @@ private struct FocusIntentView: View {
 
     @Bindable var store: PomodoroStore
 
+    private let chipLayoutHeight: CGFloat = 24
+
     private var normalizedIntent: String? {
         PomodoroSession.normalizedIntent(store.pendingFocusIntent)
     }
@@ -201,15 +194,15 @@ private struct FocusIntentView: View {
     }
 
     var body: some View {
-        VStack(spacing: 7) {
-            VStack(spacing: 6) {
-                HStack(spacing: 6) {
+        VStack(spacing: 5) {
+            VStack(spacing: 1) {
+                HStack(spacing: 4) {
                     ForEach(Array(PomodoroStore.focusIntentSuggestions.prefix(3)), id: \.self) { suggestion in
                         intentChip(suggestion)
                     }
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     ForEach(Array(PomodoroStore.focusIntentSuggestions.suffix(1)), id: \.self) { suggestion in
                         intentChip(suggestion)
                     }
@@ -235,11 +228,12 @@ private struct FocusIntentView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.plain)
                         .foregroundStyle(TimerTomatoDesign.tertiaryText)
+                        .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
                         .help("Fokus-Ziel leeren")
                 }
             }
             .padding(.horizontal, 10)
-            .frame(height: 28)
+            .frame(height: TimerTomatoDesign.compactHitTarget)
             .background {
                 Capsule()
                     .fill(TimerTomatoDesign.surfaceFill)
@@ -264,7 +258,7 @@ private struct FocusIntentView: View {
         .frame(height: 24)
         .padding(.horizontal, 10)
         .background { intentChipBackground(isActive: isSelected) }
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .timerTomatoHitTarget(minWidth: 64, minHeight: chipLayoutHeight)
         .buttonStyle(.plain)
         .help("Fokus-Ziel \(suggestion)")
     }
@@ -282,7 +276,7 @@ private struct FocusIntentView: View {
         .frame(height: 24)
         .padding(.horizontal, 10)
         .background { intentChipBackground(isActive: isCustomIntentActive) }
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .timerTomatoHitTarget(minWidth: 108, minHeight: chipLayoutHeight)
         .buttonStyle(.plain)
         .help("Eigenes Fokus-Ziel eingeben")
     }
@@ -355,7 +349,7 @@ private struct FocusOutcomePromptView: View {
                 .minimumScaleFactor(0.75)
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(tint(for: outcome))
-                .frame(maxWidth: .infinity, minHeight: 30)
+                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -388,7 +382,7 @@ private struct FocusOutcomePromptView: View {
                     .lineLimit(1)
             }
             .padding(.horizontal, 10)
-            .frame(height: 28)
+            .frame(minHeight: TimerTomatoDesign.minimumHitTarget)
             .background {
                 Capsule()
                     .fill(TimerTomatoDesign.surfaceFill)
@@ -401,7 +395,7 @@ private struct FocusOutcomePromptView: View {
                 }
                 .font(.caption.bold())
                 .foregroundStyle(TimerTomatoDesign.secondaryText)
-                .frame(maxWidth: .infinity, minHeight: 28)
+                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -416,7 +410,7 @@ private struct FocusOutcomePromptView: View {
                 .font(.caption.bold())
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(TimerTomatoDesign.mint)
-                .frame(maxWidth: .infinity, minHeight: 28)
+                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -451,7 +445,7 @@ private struct FocusOutcomePromptView: View {
         .minimumScaleFactor(0.74)
         .labelStyle(.titleAndIcon)
         .foregroundStyle(isSelected ? TimerTomatoDesign.tomato : TimerTomatoDesign.secondaryText)
-        .frame(maxWidth: .infinity, minHeight: 28)
+        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
         .background {
             Capsule()
                 .fill(TimerTomatoDesign.surfaceFill)
@@ -541,7 +535,7 @@ private struct CompletionFeedbackView: View {
                     .minimumScaleFactor(0.78)
                     .foregroundStyle(TimerTomatoDesign.mint)
                     .padding(.horizontal, 8)
-                    .frame(height: 24)
+                    .frame(minHeight: TimerTomatoDesign.minimumHitTarget)
                     .background {
                         Capsule()
                             .fill(TimerTomatoDesign.surfaceFill)
@@ -552,7 +546,7 @@ private struct CompletionFeedbackView: View {
                     }
                     .glassEffect(.regular.interactive(), in: .capsule)
                     .buttonStyle(.plain)
-                    .help("10 Minuten Rescue-Fokus starten")
+                    .help("10 Minuten Reset starten")
             }
         }
         .padding(.horizontal, 10)

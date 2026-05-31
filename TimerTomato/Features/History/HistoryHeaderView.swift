@@ -19,7 +19,7 @@ struct HistoryHeaderView: View {
                 .labelStyle(.iconOnly)
                 .font(.title3)
                 .foregroundStyle(TimerTomatoDesign.secondaryText)
-                .frame(width: 32, height: 32)
+                .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
                 .contentShape(Circle())
                 .buttonStyle(.plain)
                 .help("Zurück")
@@ -41,13 +41,13 @@ struct HistoryHeaderView: View {
                     Button("Vorherige Woche", systemImage: "chevron.left", action: previousWeek)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
-                        .frame(width: 30, height: 30)
+                        .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
                         .help("Vorherige Woche")
 
                     Button("Nächste Woche", systemImage: "chevron.right", action: nextWeek)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
-                        .frame(width: 30, height: 30)
+                        .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
                         .help("Nächste Woche")
                 }
             }

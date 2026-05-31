@@ -47,32 +47,28 @@ struct TodayStatsView: View {
 
                 Spacer()
 
-                HStack(spacing: 2) {
-                    Button("Tagesziel senken", systemImage: "minus", action: store.decreaseDailyGoalSessions)
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(TimerTomatoDesign.secondaryText)
-                        .frame(width: 26, height: 26)
-                        .contentShape(Circle())
-                        .disabled(store.dailyGoalSessions <= PomodoroStore.minimumDailyGoalSessions)
-                        .help("Tagesziel senken")
+                HStack(spacing: 0) {
+                    StepperIconButton(
+                        title: "Tagesziel senken",
+                        systemImage: "minus",
+                        isDisabled: store.dailyGoalSessions <= PomodoroStore.minimumDailyGoalSessions,
+                        action: store.decreaseDailyGoalSessions
+                    )
 
                     Text("\(store.dailyGoalSessions)")
                         .font(.footnote.monospacedDigit())
                         .bold()
-                        .frame(minWidth: 18)
+                        .frame(minWidth: 20)
 
-                    Button("Tagesziel erhöhen", systemImage: "plus", action: store.increaseDailyGoalSessions)
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(TimerTomatoDesign.secondaryText)
-                        .frame(width: 26, height: 26)
-                        .contentShape(Circle())
-                        .disabled(store.dailyGoalSessions >= PomodoroStore.maximumDailyGoalSessions)
-                        .help("Tagesziel erhöhen")
+                    StepperIconButton(
+                        title: "Tagesziel erhöhen",
+                        systemImage: "plus",
+                        isDisabled: store.dailyGoalSessions >= PomodoroStore.maximumDailyGoalSessions,
+                        action: store.increaseDailyGoalSessions
+                    )
                 }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 3)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)

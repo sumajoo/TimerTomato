@@ -203,8 +203,8 @@ struct TimerTomatoTests {
         let completedFeedback = completedStore.completionFeedback(for: completedSession, outcome: .completed)
 
         #expect(completedFeedback.kind == .focusWin)
-        #expect(completedFeedback.title == "+1 Fokus-Sieg")
-        #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
+        #expect(completedFeedback.title == "+1 Session")
+        #expect(completedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
         #expect(completedFeedback.offersRescueAction == false)
 
         let progressedContainer = makeModelContainer()
@@ -221,8 +221,8 @@ struct TimerTomatoTests {
         let progressedFeedback = progressedStore.completionFeedback(for: progressedSession, outcome: .progressed)
 
         #expect(progressedFeedback.kind == .focusWin)
-        #expect(progressedFeedback.title == "+1 Fokus-Sieg")
-        #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Streak: 1 Tag")
+        #expect(progressedFeedback.title == "+1 Session")
+        #expect(progressedFeedback.detail == "Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
     }
 
     @Test func rescueSessionRestoresAndSavesOutcome() async {
@@ -235,7 +235,7 @@ struct TimerTomatoTests {
 
         #expect(store.status == .running)
         #expect(store.activePlannedMinutes == 10)
-        #expect(store.activeFocusIntentText == "Tag retten")
+        #expect(store.activeFocusIntentText == "Kurz dranbleiben")
         #expect(store.activeIsRescueSession)
 
         now = date(hour: 9, minute: 5)
@@ -250,7 +250,7 @@ struct TimerTomatoTests {
 
         #expect(restored.pendingOutcomeSession?.isRescue == true)
         #expect(restored.pendingOutcomeSession?.plannedMinutes == 10)
-        #expect(restored.pendingOutcomeSession?.intentTitle == "Tag retten")
+        #expect(restored.pendingOutcomeSession?.intentTitle == "Kurz dranbleiben")
 
         restored.completePendingOutcome(.completed)
 
@@ -305,8 +305,8 @@ struct TimerTomatoTests {
         let feedback = store.completionFeedback(for: rescueSession, outcome: .completed)
 
         #expect(feedback.kind == .momentum)
-        #expect(feedback.title == "Momentum erreicht")
-        #expect(feedback.detail == "10-min Rescue · Diese Woche 0/4")
+        #expect(feedback.title == "Drangeblieben")
+        #expect(feedback.detail == "10-min Reset · Diese Woche 0/4")
         #expect(feedback.offersRescueAction == false)
     }
 
@@ -367,7 +367,7 @@ struct TimerTomatoTests {
         achieved.weeklyGoalSessions = 6
 
         #expect(onCourse.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Du bist auf Kurs")
-        #expect(open.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Noch 5 bis zur starken Woche")
+        #expect(open.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Noch 5 Sessions bis zur starken Woche")
         #expect(achieved.weeklyQuestStatusText(containing: date(day: 20, hour: 12, minute: 0)) == "Starke Woche geschafft")
     }
 
@@ -534,9 +534,9 @@ struct TimerTomatoTests {
         #expect(store.averagePauseSecondsToday == 540)
         #expect(store.dailyGoalProgress == 0.5)
         #expect(store.dailyGoalCountText == "2/4")
-        #expect(store.dailyGoalStatusText == "Noch 2 Fokus-Siege")
+        #expect(store.dailyGoalStatusText == "Noch 2 Sessions")
         #expect(store.compactTodaySummaryText == "2 · 50 min")
-        #expect(store.todaySummaryText == "2 Siege · 2 Sitzungen · 50 min · Ø Pause 9 min")
+        #expect(store.todaySummaryText == "2 Sessions · 50 min · Ø Pause 9 min")
     }
 
     @Test func breakTimerCompletesWithoutRecordingSession() async {

@@ -24,7 +24,7 @@ struct DurationControlView: View {
                             .bold()
 
                         if showsDetailText {
-                            Text("Ab nächster Sitzung")
+                            Text("Ab nächster Session")
                                 .font(.footnote)
                                 .foregroundStyle(TimerTomatoDesign.tertiaryText)
                         }
@@ -33,31 +33,27 @@ struct DurationControlView: View {
 
                     Spacer()
 
-                    HStack(spacing: 4) {
-                        Button("Kürzer", systemImage: "minus", action: store.decreaseSelectedMinutes)
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.plain)
-                            .foregroundStyle(TimerTomatoDesign.secondaryText)
-                            .frame(width: 30, height: 30)
-                            .contentShape(Circle())
-                            .disabled(store.selectedMinutes <= PomodoroStore.minimumMinutes)
-                            .help("Fokusdauer verkürzen")
+                    HStack(spacing: 0) {
+                        StepperIconButton(
+                            title: "Fokusdauer verkürzen",
+                            systemImage: "minus",
+                            isDisabled: store.selectedMinutes <= PomodoroStore.minimumMinutes,
+                            action: store.decreaseSelectedMinutes
+                        )
 
                         Text(PomodoroFormatters.minutesText(store.selectedMinutes))
                             .font(.headline.monospacedDigit())
-                            .frame(minWidth: 58)
+                            .frame(minWidth: 62)
 
-                        Button("Länger", systemImage: "plus", action: store.increaseSelectedMinutes)
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.plain)
-                            .foregroundStyle(TimerTomatoDesign.secondaryText)
-                            .frame(width: 30, height: 30)
-                            .contentShape(Circle())
-                            .disabled(store.selectedMinutes >= PomodoroStore.maximumMinutes)
-                            .help("Fokusdauer verlängern")
+                        StepperIconButton(
+                            title: "Fokusdauer verlängern",
+                            systemImage: "plus",
+                            isDisabled: store.selectedMinutes >= PomodoroStore.maximumMinutes,
+                            action: store.increaseSelectedMinutes
+                        )
                     }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 4)
                     .background {
                         Capsule()
                             .fill(TimerTomatoDesign.surfaceFill)

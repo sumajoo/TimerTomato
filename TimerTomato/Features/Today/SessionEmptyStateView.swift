@@ -15,7 +15,7 @@ struct SessionEmptyStateView: View {
                 .foregroundStyle(TimerTomatoDesign.tertiaryText)
                 .accessibilityHidden(true)
 
-            Text("Noch keine Sitzungen heute")
+            Text("Noch keine Sessions heute")
                 .font(.callout)
                 .bold()
 

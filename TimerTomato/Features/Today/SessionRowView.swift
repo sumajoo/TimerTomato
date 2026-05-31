@@ -18,7 +18,7 @@ struct SessionRowView: View {
 
     private var subtitleText: String {
         if session.isRescue {
-            return "\(session.plannedMinutes)-min Rescue · \(timeRangeText)"
+            return "\(session.plannedMinutes)-min Reset · \(timeRangeText)"
         }
 
         if session.intentTitle != nil {
@@ -122,7 +122,7 @@ struct SessionRowView: View {
 }
 
 #if DEBUG
-#Preview("Sitzungszeile") {
+#Preview("Sessionzeile") {
     SessionRowView(
         session: TimerTomatoPreviewData.sampleSession
     )

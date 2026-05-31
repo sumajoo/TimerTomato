@@ -51,6 +51,7 @@ struct DurationPresetPickerView: View {
         .frame(minWidth: 50)
         .padding(.horizontal, 5)
         .padding(.vertical, 6)
+        .timerTomatoHitTarget(minWidth: 54)
         .buttonStyle(.plain)
         .accessibilityLabel("\(minutes) Minuten")
         .accessibilityValue(isSelected ? "Ausgewählt" : "")
