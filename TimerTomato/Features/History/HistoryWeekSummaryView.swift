@@ -289,7 +289,7 @@ private struct BestFocusDayChip: View {
         .frame(width: 106, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(TimerTomatoDesign.trackFill)
+                .fill(TimerTomatoDesign.mint.opacity(0.10))
         }
         .accessibilityLabel("Platz \(rank), \(title), \(day.focusMinutes) Minuten, \(sessionText)")
     }
