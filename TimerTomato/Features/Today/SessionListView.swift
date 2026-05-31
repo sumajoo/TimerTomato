@@ -30,18 +30,21 @@ struct SessionListView: View {
                 .padding(.horizontal, 4)
 
             if sessions.isEmpty {
+                TodayStatsView(store: store)
+
                 GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
-                    TodayStatsView(store: store)
                     SessionEmptyStateView()
                 }
             } else {
                 ScrollView(.vertical) {
-                    GlassEffectContainer(spacing: 12) {
+                    VStack(spacing: 12) {
                         TodayStatsView(store: store)
 
-                        VStack(spacing: 12) {
-                            ForEach(orderedSessions) { session in
-                                SessionRowView(session: session)
+                        GlassEffectContainer(spacing: 12) {
+                            VStack(spacing: 12) {
+                                ForEach(orderedSessions) { session in
+                                    SessionRowView(session: session)
+                                }
                             }
                         }
                     }

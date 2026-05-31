@@ -141,15 +141,6 @@ enum TimerTomatoCardVariant {
             0
         }
     }
-
-    var hasExplicitBorder: Bool {
-        switch self {
-        case .hero, .panel:
-            true
-        case .row:
-            false
-        }
-    }
 }
 
 private struct TimerTomatoCardModifier: ViewModifier {
@@ -197,13 +188,10 @@ private struct TimerTomatoCardModifier: ViewModifier {
             }
     }
 
-    @ViewBuilder
     private var cardBorder: some View {
-        if variant.hasExplicitBorder {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(TimerTomatoDesign.cardBorder, lineWidth: TimerTomatoDesign.cardBorderWidth)
-                .allowsHitTesting(false)
-        }
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .stroke(TimerTomatoDesign.cardBorder, lineWidth: TimerTomatoDesign.cardBorderWidth)
+            .allowsHitTesting(false)
     }
 }
 
