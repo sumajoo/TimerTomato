@@ -29,7 +29,7 @@ struct TodayStatsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
+        VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
                 Text(store.todaySummaryText)
                     .font(.footnote)
@@ -59,15 +59,10 @@ struct TodayStatsView: View {
             }
 
             HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Tagesziel")
-                        .font(.footnote)
-                        .bold()
-
-                    Text(store.dailyGoalStatusText)
-                        .font(.footnote)
-                        .foregroundStyle(TimerTomatoDesign.tertiaryText)
-                }
+                Label(store.dailyGoalStatusText, systemImage: goalProgress >= 1 ? "checkmark.circle.fill" : "target")
+                    .font(.caption2.bold())
+                    .foregroundStyle(goalProgress >= 1 ? TimerTomatoDesign.mint : TimerTomatoDesign.tertiaryText)
+                    .lineLimit(1)
 
                 Spacer()
 
@@ -104,7 +99,7 @@ struct TodayStatsView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
         .timerTomatoCard(.row)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Heute \(store.todaySummaryText), Tagesziel \(store.dailyGoalCountText)")

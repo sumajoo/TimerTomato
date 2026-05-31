@@ -113,8 +113,10 @@ enum TimerTomatoCardVariant {
         switch self {
         case .hero:
             TimerTomatoDesign.heroShadow
-        case .panel, .row:
+        case .panel:
             TimerTomatoDesign.panelShadow
+        case .row:
+            .clear
         }
     }
 
@@ -125,7 +127,7 @@ enum TimerTomatoCardVariant {
         case .panel:
             16
         case .row:
-            14
+            0
         }
     }
 
@@ -136,7 +138,16 @@ enum TimerTomatoCardVariant {
         case .panel:
             10
         case .row:
-            8
+            0
+        }
+    }
+
+    var hasExplicitBorder: Bool {
+        switch self {
+        case .hero, .panel:
+            true
+        case .row:
+            false
         }
     }
 }
@@ -186,10 +197,13 @@ private struct TimerTomatoCardModifier: ViewModifier {
             }
     }
 
+    @ViewBuilder
     private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .stroke(TimerTomatoDesign.cardBorder, lineWidth: TimerTomatoDesign.cardBorderWidth)
-            .allowsHitTesting(false)
+        if variant.hasExplicitBorder {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(TimerTomatoDesign.cardBorder, lineWidth: TimerTomatoDesign.cardBorderWidth)
+                .allowsHitTesting(false)
+        }
     }
 }
 

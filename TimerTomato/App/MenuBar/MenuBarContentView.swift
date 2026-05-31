@@ -52,8 +52,8 @@ struct MenuBarContentView: View {
                 )
             }
         }
-        .padding(TimerTomatoDesign.contentPadding)
         .frame(width: contentWidth)
+        .padding(TimerTomatoDesign.contentPadding)
         .onAppear {
             store.refreshLifecycleState()
             store.refreshNotificationPermission()

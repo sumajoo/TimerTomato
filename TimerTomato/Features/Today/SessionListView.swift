@@ -10,7 +10,7 @@ import SwiftUI
 struct SessionListView: View {
     let store: PomodoroStore
 
-    private let sessionRowsMaxHeight: CGFloat = 172
+    private let todayContentMaxHeight: CGFloat = 166
 
     private var sessions: [PomodoroSession] {
         store.sessions
@@ -29,16 +29,17 @@ struct SessionListView: View {
                 .imageScale(.small)
                 .padding(.horizontal, 4)
 
-            TodayStatsView(store: store)
-
             if sessions.isEmpty {
                 GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
+                    TodayStatsView(store: store)
                     SessionEmptyStateView()
                 }
             } else {
                 ScrollView(.vertical) {
-                    GlassEffectContainer(spacing: 14) {
-                        VStack(spacing: 14) {
+                    GlassEffectContainer(spacing: 12) {
+                        TodayStatsView(store: store)
+
+                        VStack(spacing: 12) {
                             ForEach(orderedSessions) { session in
                                 SessionRowView(session: session)
                             }
@@ -48,7 +49,7 @@ struct SessionListView: View {
                     .padding(.bottom, 6)
                 }
                 .scrollIndicators(.automatic)
-                .frame(maxHeight: sessionRowsMaxHeight)
+                .frame(height: todayContentMaxHeight)
             }
         }
     }
