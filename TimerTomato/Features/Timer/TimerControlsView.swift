@@ -12,65 +12,150 @@ struct TimerControlsView: View {
 
     let store: PomodoroStore
 
+    private let primaryButtonHeight: CGFloat = 52
+    private let secondaryButtonWidth: CGFloat = 72
+
     private var accentColor: Color {
         store.activeTimerKind == .breakTime ? TimerTomatoDesign.mint : TimerTomatoDesign.tomato
     }
 
     private var primaryButtonWidth: CGFloat {
-        store.status == .idle && store.canStartBreak ? 154 : store.status == .idle ? 180 : 138
+        store.status == .idle && store.canStartBreak ? 188 : store.status == .idle ? 214 : 184
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Spacer(minLength: 0)
 
             switch store.status {
             case .idle:
-                Button("Fokus starten", systemImage: "play.fill", action: store.start)
-                    .frame(width: primaryButtonWidth)
-                    .timerTomatoHitTarget(minWidth: primaryButtonWidth)
-                    .buttonStyle(.glassProminent)
-                    .tint(TimerTomatoDesign.tomato)
+                TimerControlPrimaryButton(
+                    title: "Fokus starten",
+                    systemImage: "play.fill",
+                    tint: TimerTomatoDesign.tomato,
+                    width: primaryButtonWidth,
+                    height: primaryButtonHeight,
+                    action: store.start
+                )
                     .disabled(!store.canStartFocus)
                     .glassEffectID("timer-primary-control", in: glassNamespace)
 
                 if store.canStartBreak {
-                    Button("Pause starten", systemImage: "cup.and.saucer.fill", action: store.startBreak)
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.glass)
-                        .foregroundStyle(TimerTomatoDesign.mint)
-                        .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
+                    TimerControlIconButton(
+                        title: "Pause starten",
+                        systemImage: "cup.and.saucer.fill",
+                        tint: TimerTomatoDesign.mint,
+                        width: secondaryButtonWidth,
+                        height: primaryButtonHeight,
+                        action: store.startBreak
+                    )
                         .help("5 Minuten Pause starten")
                         .glassEffectID("timer-break-control", in: glassNamespace)
                 }
             case .running:
-                Button("Pause", systemImage: "pause.fill", action: store.pause)
-                    .frame(width: primaryButtonWidth)
-                    .timerTomatoHitTarget(minWidth: primaryButtonWidth)
-                    .buttonStyle(.glassProminent)
-                    .tint(accentColor)
+                TimerControlPrimaryButton(
+                    title: "Pause",
+                    systemImage: "pause.fill",
+                    tint: accentColor,
+                    width: primaryButtonWidth,
+                    height: primaryButtonHeight,
+                    action: store.pause
+                )
                     .glassEffectID("timer-primary-control", in: glassNamespace)
             case .paused:
-                Button("Fortsetzen", systemImage: "play.fill", action: store.resume)
-                    .frame(width: primaryButtonWidth)
-                    .timerTomatoHitTarget(minWidth: primaryButtonWidth)
-                    .buttonStyle(.glassProminent)
-                    .tint(accentColor)
+                TimerControlPrimaryButton(
+                    title: "Fortsetzen",
+                    systemImage: "play.fill",
+                    tint: accentColor,
+                    width: primaryButtonWidth,
+                    height: primaryButtonHeight,
+                    action: store.resume
+                )
                     .glassEffectID("timer-primary-control", in: glassNamespace)
             }
 
             if store.status != .idle {
-                Button("Zurücksetzen", systemImage: "arrow.counterclockwise", action: store.reset)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.glass)
-                    .foregroundStyle(TimerTomatoDesign.secondaryText)
-                    .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
+                TimerControlIconButton(
+                    title: "Zurücksetzen",
+                    systemImage: "arrow.counterclockwise",
+                    tint: TimerTomatoDesign.secondaryText,
+                    width: secondaryButtonWidth,
+                    height: primaryButtonHeight,
+                    action: store.reset
+                )
                     .help("Zurücksetzen")
                     .glassEffectID("timer-reset-control", in: glassNamespace)
             }
 
             Spacer(minLength: 0)
         }
+    }
+}
+
+private struct TimerControlPrimaryButton: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let width: CGFloat
+    let height: CGFloat
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.title3.weight(.semibold))
+                .labelStyle(.titleAndIcon)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .frame(width: width, height: height)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .background {
+            Capsule()
+                .fill(tint)
+                .overlay {
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                }
+        }
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityLabel(title)
+    }
+}
+
+private struct TimerControlIconButton: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let width: CGFloat
+    let height: CGFloat
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 21, weight: .semibold))
+                .frame(width: width, height: height)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(tint)
+        .background {
+            Capsule()
+                .fill(TimerTomatoDesign.surfaceFill)
+                .overlay {
+                    Capsule()
+                        .fill(tint.opacity(0.10))
+                }
+                .overlay {
+                    Capsule()
+                        .strokeBorder(tint.opacity(0.16), lineWidth: 0.8)
+                }
+        }
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .accessibilityLabel(title)
     }
 }
 

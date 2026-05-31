@@ -63,11 +63,13 @@ struct TimerStatusView: View {
                     FocusIntentView(store: store)
                 }
 
-                TimerProgressBarView(
-                    progress: store.progress,
-                    tint: accentColor,
-                    heatIntensity: focusHeatIntensity
-                )
+                if store.status != .idle {
+                    TimerProgressBarView(
+                        progress: store.progress,
+                        tint: accentColor,
+                        heatIntensity: focusHeatIntensity
+                    )
+                }
 
                 if let pendingOutcomeSession = store.pendingOutcomeSession {
                     FocusOutcomePromptView(
