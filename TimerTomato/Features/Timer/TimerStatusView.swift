@@ -36,7 +36,7 @@ struct TimerStatusView: View {
 
     var body: some View {
         GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
-            VStack(spacing: 17) {
+            VStack(spacing: 14) {
                 VStack(spacing: 4) {
                     Text(store.remainingClockText)
                         .font(.system(.largeTitle, design: .rounded).monospacedDigit())
@@ -100,8 +100,8 @@ struct TimerStatusView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
-            .padding(.top, 22)
-            .padding(.bottom, 18)
+            .padding(.top, 18)
+            .padding(.bottom, 16)
             .background {
                 FocusHeatBackground(intensity: focusHeatIntensity)
             }
@@ -201,8 +201,8 @@ private struct FocusIntentView: View {
     }
 
     var body: some View {
-        VStack(spacing: 7) {
-            VStack(spacing: 6) {
+        VStack(spacing: 6) {
+            VStack(spacing: 5) {
                 HStack(spacing: 6) {
                     ForEach(Array(PomodoroStore.focusIntentSuggestions.prefix(3)), id: \.self) { suggestion in
                         intentChip(suggestion)
@@ -235,12 +235,12 @@ private struct FocusIntentView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.plain)
                         .foregroundStyle(TimerTomatoDesign.tertiaryText)
-                        .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
+                        .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
                         .help("Fokus-Ziel leeren")
                 }
             }
             .padding(.horizontal, 10)
-            .frame(minHeight: TimerTomatoDesign.minimumHitTarget)
+            .frame(height: TimerTomatoDesign.compactHitTarget)
             .background {
                 Capsule()
                     .fill(TimerTomatoDesign.surfaceFill)
@@ -266,7 +266,7 @@ private struct FocusIntentView: View {
         .padding(.horizontal, 10)
         .background { intentChipBackground(isActive: isSelected) }
         .glassEffect(.regular.interactive(), in: .capsule)
-        .timerTomatoHitTarget(minWidth: 64)
+        .timerTomatoHitTarget(minWidth: 64, minHeight: TimerTomatoDesign.compactHitTarget)
         .buttonStyle(.plain)
         .help("Fokus-Ziel \(suggestion)")
     }
@@ -285,7 +285,7 @@ private struct FocusIntentView: View {
         .padding(.horizontal, 10)
         .background { intentChipBackground(isActive: isCustomIntentActive) }
         .glassEffect(.regular.interactive(), in: .capsule)
-        .timerTomatoHitTarget(minWidth: 108)
+        .timerTomatoHitTarget(minWidth: 108, minHeight: TimerTomatoDesign.compactHitTarget)
         .buttonStyle(.plain)
         .help("Eigenes Fokus-Ziel eingeben")
     }

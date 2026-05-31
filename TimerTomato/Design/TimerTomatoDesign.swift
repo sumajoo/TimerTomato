@@ -18,6 +18,7 @@ enum TimerTomatoDesign {
     static let contentPadding: CGFloat = 16
     static let cardBorderWidth: CGFloat = 1
     static let minimumHitTarget: CGFloat = 44
+    static let compactHitTarget: CGFloat = 34
 
     static let tomato = adaptiveColor(
         light: color(red: 0.82, green: 0.18, blue: 0.14),
