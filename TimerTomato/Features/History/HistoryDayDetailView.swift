@@ -144,7 +144,7 @@ struct HistoryDayDetailView: View {
                         }
 
                         if day.progressedOutcomeCount > 0 {
-                            insightChip("Weiter \(day.progressedOutcomeCount)", systemImage: PomodoroSessionOutcome.progressed.systemImage, tint: TimerTomatoDesign.mint)
+                            insightChip("\(PomodoroSessionOutcome.progressed.shortTitle) \(day.progressedOutcomeCount)", systemImage: PomodoroSessionOutcome.progressed.systemImage, tint: TimerTomatoDesign.mint)
                         }
 
                         if day.blockedOutcomeCount > 0 {

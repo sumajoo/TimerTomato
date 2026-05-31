@@ -17,7 +17,7 @@ enum PomodoroSessionOutcome: String, Codable, CaseIterable, Equatable {
         case .completed:
             "Erledigt"
         case .progressed:
-            "Weitergekommen"
+            "Fortschritt"
         case .blocked:
             "Blockiert"
         }
@@ -28,7 +28,7 @@ enum PomodoroSessionOutcome: String, Codable, CaseIterable, Equatable {
         case .completed:
             "Erledigt"
         case .progressed:
-            "Weiter"
+            "Fortschritt"
         case .blocked:
             "Blockiert"
         }

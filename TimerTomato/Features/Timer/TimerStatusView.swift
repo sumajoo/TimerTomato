@@ -11,7 +11,6 @@ struct TimerStatusView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var completionFeedback: PomodoroCompletionFeedback?
-    @State private var feedbackDismissTask: Task<Void, Never>?
 
     @Bindable var store: PomodoroStore
 
@@ -111,9 +110,10 @@ struct TimerStatusView: View {
             }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: focusHeatIntensity)
         }
-        .onDisappear {
-            feedbackDismissTask?.cancel()
-            feedbackDismissTask = nil
+        .onChange(of: store.status) {
+            if store.status == .running {
+                clearCompletionFeedback()
+            }
         }
     }
 
@@ -132,25 +132,16 @@ struct TimerStatusView: View {
     }
 
     private func showCompletionFeedback(_ feedback: PomodoroCompletionFeedback) {
-        feedbackDismissTask?.cancel()
         completionFeedback = feedback
-        feedbackDismissTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-
-            guard !Task.isCancelled else {
-                return
-            }
-
-            completionFeedback = nil
-            feedbackDismissTask = nil
-        }
     }
 
     private func startRescueFromFeedback() {
-        feedbackDismissTask?.cancel()
-        feedbackDismissTask = nil
-        completionFeedback = nil
+        clearCompletionFeedback()
         store.startRescueFocus()
+    }
+
+    private func clearCompletionFeedback() {
+        completionFeedback = nil
     }
 }
 
@@ -188,6 +179,8 @@ private struct FocusIntentView: View {
 
     @Bindable var store: PomodoroStore
 
+    private let chipLayoutHeight: CGFloat = 24
+
     private var normalizedIntent: String? {
         PomodoroSession.normalizedIntent(store.pendingFocusIntent)
     }
@@ -201,15 +194,15 @@ private struct FocusIntentView: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
-            VStack(spacing: 5) {
-                HStack(spacing: 6) {
+        VStack(spacing: 5) {
+            VStack(spacing: 1) {
+                HStack(spacing: 4) {
                     ForEach(Array(PomodoroStore.focusIntentSuggestions.prefix(3)), id: \.self) { suggestion in
                         intentChip(suggestion)
                     }
                 }
 
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     ForEach(Array(PomodoroStore.focusIntentSuggestions.suffix(1)), id: \.self) { suggestion in
                         intentChip(suggestion)
                     }
@@ -265,8 +258,7 @@ private struct FocusIntentView: View {
         .frame(height: 24)
         .padding(.horizontal, 10)
         .background { intentChipBackground(isActive: isSelected) }
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .timerTomatoHitTarget(minWidth: 64, minHeight: TimerTomatoDesign.compactHitTarget)
+        .timerTomatoHitTarget(minWidth: 64, minHeight: chipLayoutHeight)
         .buttonStyle(.plain)
         .help("Fokus-Ziel \(suggestion)")
     }
@@ -284,8 +276,7 @@ private struct FocusIntentView: View {
         .frame(height: 24)
         .padding(.horizontal, 10)
         .background { intentChipBackground(isActive: isCustomIntentActive) }
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .timerTomatoHitTarget(minWidth: 108, minHeight: TimerTomatoDesign.compactHitTarget)
+        .timerTomatoHitTarget(minWidth: 108, minHeight: chipLayoutHeight)
         .buttonStyle(.plain)
         .help("Eigenes Fokus-Ziel eingeben")
     }
