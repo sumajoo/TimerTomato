@@ -58,12 +58,8 @@ struct HistoryWeekSummaryView: View {
                     blockerHint
                 }
 
-                if let bestFocusDayText {
-                    Label(bestFocusDayText, systemImage: "trophy.fill")
-                        .font(.footnote)
-                        .foregroundStyle(TimerTomatoDesign.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                if !bestFocusDays.isEmpty {
+                    bestFocusDaysView
                 }
 
                 if shouldShowSuggestion {
@@ -207,15 +203,33 @@ struct HistoryWeekSummaryView: View {
         return "Diese Woche \(blockerSummary.blockedCount)x blockiert"
     }
 
-    private var bestFocusDayText: String? {
-        guard let bestFocusDay = bestFocusDays.first else {
-            return nil
+    private var bestFocusDaysView: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label("Beste Fokus-Tage", systemImage: "trophy.fill")
+                .font(.footnote.bold())
+                .foregroundStyle(.primary)
+                .labelStyle(.titleAndIcon)
+
+            HStack(spacing: 7) {
+                ForEach(Array(bestFocusDays.enumerated()), id: \.element.id) { index, day in
+                    BestFocusDayChip(
+                        rank: index + 1,
+                        title: bestFocusDayTitle(for: day.date),
+                        day: day
+                    )
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func bestFocusDayTitle(for date: Date) -> String {
+        if store.isSameDay(date, store.currentDate) {
+            return "Heute"
         }
 
-        let title = store.isSameDay(bestFocusDay.date, store.currentDate)
-            ? "Heute"
-            : bestFocusDay.date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
-        return "Bester Tag: \(title) · \(bestFocusDay.focusMinutes) min"
+        return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
     }
 
     private var activeDaysText: String {
@@ -235,6 +249,49 @@ struct HistoryWeekSummaryView: View {
         .font(.footnote)
         .lineLimit(1)
         .minimumScaleFactor(0.82)
+    }
+}
+
+private struct BestFocusDayChip: View {
+    let rank: Int
+    let title: String
+    let day: PomodoroBestFocusDay
+
+    private var sessionText: String {
+        day.sessionCount == 1 ? "1 Session" : "\(day.sessionCount) Sessions"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("#\(rank)")
+                .font(.caption2.monospacedDigit())
+                .fontWeight(.semibold)
+                .foregroundStyle(TimerTomatoDesign.mint)
+
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            Text("\(day.focusMinutes) min")
+                .font(.caption.monospacedDigit())
+                .fontWeight(.semibold)
+
+            Text(sessionText)
+                .font(.caption2)
+                .foregroundStyle(TimerTomatoDesign.tertiaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .frame(width: 106, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(TimerTomatoDesign.trackFill)
+        }
+        .accessibilityLabel("Platz \(rank), \(title), \(day.focusMinutes) Minuten, \(sessionText)")
     }
 }
 
