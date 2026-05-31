@@ -155,6 +155,226 @@ struct TimerTomatoTests {
         #expect(restored.sessions[0].outcome == .progressed)
     }
 
+    @Test func activeFocusIntentChangeTracksNetFocusSegments() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        #expect(store.activeFocusIntentText == "Bug fixen")
+        #expect(store.activeFocusSegments.isEmpty)
+        #expect(store.activeFocusSegmentStartedFocusSeconds == 0)
+
+        now = date(hour: 9, minute: 10)
+        store.changeActiveFocusIntent("Lernen")
+
+        #expect(store.activeFocusIntentText == "Lernen")
+        #expect(store.activeFocusSegments.map(\.intent) == ["Bug fixen"])
+        #expect(store.activeFocusSegments.map(\.focusSeconds) == [600])
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+
+        #expect(store.sessions[0].focusSegments.map(\.intent) == ["Bug fixen", "Lernen"])
+        #expect(store.sessions[0].focusSegments.map(\.focusSeconds) == [600, 900])
+    }
+
+    @Test func activeFocusIntentChangeWhilePausedDoesNotCountPauseTime() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 5)
+        store.pause()
+
+        now = date(hour: 9, minute: 10)
+        store.changeActiveFocusIntent("Lernen")
+
+        #expect(store.activeFocusSegments.map(\.focusSeconds) == [300])
+
+        now = date(hour: 9, minute: 15)
+        store.resume()
+
+        now = date(hour: 9, minute: 35)
+        store.tick()
+
+        #expect(store.sessions[0].focusSegments.map(\.intent) == ["Bug fixen", "Lernen"])
+        #expect(store.sessions[0].focusSegments.map(\.focusSeconds) == [300, 1_200])
+    }
+
+    @Test func topicSummariesAggregateRepeatedTopics() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 5)
+        store.changeActiveFocusIntent("Lernen")
+
+        now = date(hour: 9, minute: 15)
+        store.changeActiveFocusIntent("Bug fixen")
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+
+        let summaries = store.topicSummaries(on: date(hour: 9, minute: 0))
+
+        #expect(summaries.map(\.intent) == ["Bug fixen", "Lernen"])
+        #expect(summaries.map(\.focusSeconds) == [900, 600])
+        #expect(summaries.map(\.sessionCount) == [1, 1])
+        #expect(store.sessions[0].topicCount == 2)
+    }
+
+    @Test func changingToSameFocusIntentIsNoop() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 5)
+        store.changeActiveFocusIntent("  Bug fixen  ")
+
+        #expect(store.activeFocusSegments.isEmpty)
+        #expect(store.activeFocusIntentText == "Bug fixen")
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+
+        #expect(store.sessions[0].focusSegments.map(\.intent) == ["Bug fixen"])
+        #expect(store.sessions[0].focusSegments.map(\.focusSeconds) == [1_500])
+    }
+
+    @Test func resetClearsActiveFocusSegments() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 5)
+        store.changeActiveFocusIntent("Lernen")
+        store.reset()
+
+        #expect(store.status == .idle)
+        #expect(store.activeFocusIntentText == nil)
+        #expect(store.activeFocusSegments.isEmpty)
+        #expect(store.activeFocusSegmentStartedFocusSeconds == nil)
+    }
+
+    @Test func activeFocusSegmentsRestoreAndComplete() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 5)
+        store.changeActiveFocusIntent("Lernen")
+
+        now = date(hour: 9, minute: 8)
+        let restored = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        #expect(restored.status == .running)
+        #expect(restored.activeFocusIntentText == "Lernen")
+        #expect(restored.activeFocusSegments.map(\.intent) == ["Bug fixen"])
+        #expect(restored.activeFocusSegments.map(\.focusSeconds) == [300])
+        #expect(restored.activeFocusSegmentStartedFocusSeconds == 300)
+
+        now = date(hour: 9, minute: 25)
+        restored.tick()
+
+        #expect(restored.sessions[0].focusSegments.map(\.intent) == ["Bug fixen", "Lernen"])
+        #expect(restored.sessions[0].focusSegments.map(\.focusSeconds) == [300, 1_200])
+    }
+
+    @Test func persistedFocusSegmentsRestoreAcrossStoreInstances() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 10)
+        store.changeActiveFocusIntent("Lernen")
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+        store.completePendingOutcome(.completed)
+
+        let restored = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        #expect(restored.sessions[0].focusSegments.map(\.intent) == ["Bug fixen", "Lernen"])
+        #expect(restored.sessions[0].focusSegments.map(\.focusSeconds) == [600, 900])
+    }
+
+    @Test func legacySessionsWithoutPersistedSegmentsFallbackToIntent() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let context = modelContainer.mainContext
+
+        context.insert(
+            PomodoroSessionRecord(
+                startedAt: date(hour: 9, minute: 0),
+                endedAt: date(hour: 9, minute: 25),
+                plannedMinutes: 25,
+                pauseBeforeSeconds: nil,
+                intent: "Bug fixen",
+                focusSegmentsData: nil
+            )
+        )
+
+        do {
+            try context.save()
+        } catch {
+            fatalError("Could not seed legacy session record: \(error)")
+        }
+
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { date(hour: 12, minute: 0) })
+        let summaries = store.topicSummaries(on: date(hour: 9, minute: 0))
+
+        #expect(store.sessions[0].focusSegments.map(\.intent) == ["Bug fixen"])
+        #expect(store.sessions[0].focusSegments.map(\.focusSeconds) == [1_500])
+        #expect(summaries.map(\.intent) == ["Bug fixen"])
+        #expect(summaries.map(\.focusSeconds) == [1_500])
+    }
+
+    @Test func segmentedSessionStillCountsAsSingleGoalSession() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.dailyGoalSessions = 1
+        store.weeklyGoalSessions = 1
+        store.pendingFocusIntent = "Bug fixen"
+        store.start()
+
+        now = date(hour: 9, minute: 10)
+        store.changeActiveFocusIntent("Lernen")
+
+        now = date(hour: 9, minute: 25)
+        store.tick()
+        store.completePendingOutcome(.completed)
+
+        #expect(store.sessionsCompletedToday == 1)
+        #expect(store.focusWinsToday == 1)
+        #expect(store.dailyGoalCountText == "1/1")
+        #expect(store.currentWeekSummary.goalCountText == "1/1")
+    }
+
     @Test func focusWinsTreatOutcomesAndLegacySessionsCorrectly() async {
         let defaults = makeDefaults()
         let modelContainer = makeModelContainer()

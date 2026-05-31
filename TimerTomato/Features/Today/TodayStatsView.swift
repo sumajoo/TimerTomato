@@ -14,6 +14,20 @@ struct TodayStatsView: View {
         store.dailyGoalProgress
     }
 
+    private var topicSummaries: [PomodoroTopicSummary] {
+        store.topicSummaries(on: store.currentDate)
+    }
+
+    private var topicSummaryText: String? {
+        compactTopicText(limit: 2)
+    }
+
+    private var fullTopicSummaryText: String {
+        topicSummaries
+            .map { summary in "\(PomodoroFormatters.topicTitle(summary.intent)) \(PomodoroFormatters.topicMinutesText(seconds: summary.focusSeconds))" }
+            .joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline) {
@@ -33,6 +47,16 @@ struct TodayStatsView: View {
 
             TimerProgressBarView(progress: goalProgress, tint: TimerTomatoDesign.mint)
                 .frame(height: 6)
+
+            if let topicSummaryText {
+                Label(topicSummaryText, systemImage: "tag.fill")
+                    .font(.caption2)
+                    .foregroundStyle(TimerTomatoDesign.secondaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.82)
+                    .help(fullTopicSummaryText)
+            }
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 1) {
@@ -84,6 +108,24 @@ struct TodayStatsView: View {
         .timerTomatoCard(.row)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Heute \(store.todaySummaryText), Tagesziel \(store.dailyGoalCountText)")
+    }
+
+    private func compactTopicText(limit: Int) -> String? {
+        guard !topicSummaries.isEmpty else {
+            return nil
+        }
+
+        let visibleSummaries = Array(topicSummaries.prefix(limit))
+        let visibleText = visibleSummaries
+            .map { summary in "\(PomodoroFormatters.topicTitle(summary.intent)) \(PomodoroFormatters.topicMinutesText(seconds: summary.focusSeconds))" }
+            .joined(separator: " · ")
+        let remainingCount = topicSummaries.count - visibleSummaries.count
+
+        if remainingCount > 0 {
+            return "Themen: \(visibleText) · +\(remainingCount)"
+        }
+
+        return "Themen: \(visibleText)"
     }
 }
 

@@ -23,6 +23,7 @@ final class PomodoroSessionRecord {
     var isRescue: Bool?
     var blockerReasonRawValue: String?
     var blockerNextStep: String?
+    var focusSegmentsData: Data?
 
     init(
         id: UUID = UUID(),
@@ -35,7 +36,8 @@ final class PomodoroSessionRecord {
         isOutcomeTracked: Bool = false,
         isRescue: Bool = false,
         blockerReasonRawValue: String? = nil,
-        blockerNextStep: String? = nil
+        blockerNextStep: String? = nil,
+        focusSegmentsData: Data? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -48,6 +50,7 @@ final class PomodoroSessionRecord {
         self.isRescue = isRescue
         self.blockerReasonRawValue = blockerReasonRawValue
         self.blockerNextStep = PomodoroSession.normalizedIntent(blockerNextStep)
+        self.focusSegmentsData = focusSegmentsData
     }
 
     convenience init(session: PomodoroSession) {
@@ -62,8 +65,21 @@ final class PomodoroSessionRecord {
             isOutcomeTracked: session.isOutcomeTracked,
             isRescue: session.isRescue,
             blockerReasonRawValue: session.blockerReason?.rawValue,
-            blockerNextStep: session.blockerNextStep
+            blockerNextStep: session.blockerNextStep,
+            focusSegmentsData: Self.encodedFocusSegments(session.focusSegments)
         )
+    }
+
+    private static func encodedFocusSegments(_ focusSegments: [PomodoroFocusSegment]) -> Data? {
+        try? JSONEncoder().encode(focusSegments)
+    }
+
+    fileprivate static func decodedFocusSegments(_ data: Data?) -> [PomodoroFocusSegment]? {
+        guard let data else {
+            return nil
+        }
+
+        return try? JSONDecoder().decode([PomodoroFocusSegment].self, from: data)
     }
 }
 
@@ -80,7 +96,8 @@ extension PomodoroSession {
             isOutcomeTracked: record.isOutcomeTracked ?? false,
             isRescue: record.isRescue ?? false,
             blockerReason: record.blockerReasonRawValue.flatMap(PomodoroBlockerReason.init(rawValue:)),
-            blockerNextStep: record.blockerNextStep
+            blockerNextStep: record.blockerNextStep,
+            focusSegments: PomodoroSessionRecord.decodedFocusSegments(record.focusSegmentsData)
         )
     }
 }

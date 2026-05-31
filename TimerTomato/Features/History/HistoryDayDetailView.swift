@@ -65,6 +65,16 @@ struct HistoryDayDetailView: View {
         day.rescueCount > 0 || day.hasMomentumActivity
     }
 
+    private var topicSummaries: [PomodoroTopicSummary] {
+        day.topicSummaries
+    }
+
+    private var totalTopicSeconds: TimeInterval {
+        topicSummaries.reduce(0) { result, summary in
+            result + summary.focusSeconds
+        }
+    }
+
     var body: some View {
         GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
             VStack(alignment: .leading, spacing: 14) {
@@ -92,6 +102,7 @@ struct HistoryDayDetailView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
                         metricRow
+                        topicSummarySection
                         insightChips
                         blockerInsight
                         goalStatus
@@ -129,6 +140,27 @@ struct HistoryDayDetailView: View {
                 Text(minuteUnitText)
                     .font(.footnote)
                     .foregroundStyle(TimerTomatoDesign.secondaryText)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var topicSummarySection: some View {
+        if !topicSummaries.isEmpty {
+            VStack(alignment: .leading, spacing: 7) {
+                Label("Themen", systemImage: "tag.fill")
+                    .font(.footnote.bold())
+                    .foregroundStyle(.primary)
+                    .labelStyle(.titleAndIcon)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(topicSummaries.prefix(3))) { summary in
+                        TopicSummaryRow(
+                            summary: summary,
+                            totalSeconds: totalTopicSeconds
+                        )
+                    }
+                }
             }
         }
     }
@@ -210,6 +242,40 @@ struct HistoryDayDetailView: View {
                             .fill(tint.opacity(0.08))
                     }
             }
+    }
+}
+
+private struct TopicSummaryRow: View {
+    let summary: PomodoroTopicSummary
+    let totalSeconds: TimeInterval
+
+    private var progress: Double {
+        guard totalSeconds > 0 else {
+            return 0
+        }
+
+        return min(max(summary.focusSeconds / totalSeconds, 0), 1)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(PomodoroFormatters.topicTitle(summary.intent))
+                .font(.caption)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .help(PomodoroFormatters.topicTitle(summary.intent))
+
+            Spacer(minLength: 8)
+
+            TimerProgressBarView(progress: progress, tint: TimerTomatoDesign.mint)
+                .frame(width: 74, height: 4)
+
+            Text(PomodoroFormatters.topicMinutesText(seconds: summary.focusSeconds))
+                .font(.caption.monospacedDigit())
+                .fontWeight(.semibold)
+                .frame(width: 44, alignment: .trailing)
+        }
     }
 }
 

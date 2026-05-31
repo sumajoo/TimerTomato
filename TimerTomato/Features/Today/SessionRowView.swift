@@ -16,9 +16,21 @@ struct SessionRowView: View {
         return "\(start) - \(end)"
     }
 
+    private var titleText: String {
+        if session.isMultiTopic {
+            return "\(session.topicCount) Themen"
+        }
+
+        return session.displayTitle
+    }
+
     private var subtitleText: String {
         if session.isRescue {
             return "\(session.plannedMinutes)-min Reset · \(timeRangeText)"
+        }
+
+        if session.isMultiTopic {
+            return "\(topicBreakdownText(limit: 2)) · \(timeRangeText)"
         }
 
         if session.intentTitle != nil {
@@ -36,7 +48,7 @@ struct SessionRowView: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(session.displayTitle)
+                Text(titleText)
                     .font(.subheadline)
                     .bold()
                     .lineLimit(1)
@@ -118,6 +130,20 @@ struct SessionRowView: View {
         }
 
         return outcome == .blocked ? TimerTomatoDesign.tomato : TimerTomatoDesign.mint
+    }
+
+    private func topicBreakdownText(limit: Int) -> String {
+        let visibleSummaries = Array(session.topicSummaries.prefix(limit))
+        let visibleText = visibleSummaries
+            .map { summary in "\(PomodoroFormatters.topicTitle(summary.intent)) \(PomodoroFormatters.topicMinutesText(seconds: summary.focusSeconds))" }
+            .joined(separator: " · ")
+        let remainingCount = session.topicSummaries.count - visibleSummaries.count
+
+        if remainingCount > 0 {
+            return "\(visibleText) · +\(remainingCount)"
+        }
+
+        return visibleText
     }
 }
 

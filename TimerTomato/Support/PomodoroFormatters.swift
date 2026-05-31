@@ -25,6 +25,16 @@ enum PomodoroFormatters {
         "\(minutes) min"
     }
 
+    static func topicTitle(_ intent: String?) -> String {
+        PomodoroSession.normalizedIntent(intent) ?? "Ohne Thema"
+    }
+
+    static func topicMinutesText(seconds: TimeInterval) -> String {
+        let roundedMinutes = Int((max(0, seconds) / 60).rounded())
+        let minutes = seconds > 0 ? max(1, roundedMinutes) : 0
+        return "\(minutes) min"
+    }
+
     static func pauseText(seconds: TimeInterval?) -> String {
         guard let seconds else {
             return "Erste Session"

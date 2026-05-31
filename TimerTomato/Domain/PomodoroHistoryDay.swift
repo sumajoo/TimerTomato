@@ -40,6 +40,10 @@ struct PomodoroHistoryDay: Identifiable, Equatable {
         sessions.filter(\.isRescue).count
     }
 
+    var topicSummaries: [PomodoroTopicSummary] {
+        PomodoroTopicSummary.summaries(for: sessions)
+    }
+
     var hasMomentumActivity: Bool {
         sessions.contains { $0.countsAsMomentumActivity }
     }

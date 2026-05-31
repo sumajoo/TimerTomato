@@ -67,6 +67,7 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
     let isRescue: Bool
     let blockerReason: PomodoroBlockerReason?
     let blockerNextStep: String?
+    let focusSegments: [PomodoroFocusSegment]
 
     var focusSeconds: TimeInterval {
         endedAt.timeIntervalSince(startedAt)
@@ -78,6 +79,18 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
 
     var displayTitle: String {
         intentTitle ?? "\(plannedMinutes) Minuten Fokus"
+    }
+
+    var topicSummaries: [PomodoroTopicSummary] {
+        PomodoroTopicSummary.summaries(for: [self])
+    }
+
+    var topicCount: Int {
+        topicSummaries.count
+    }
+
+    var isMultiTopic: Bool {
+        topicCount > 1
     }
 
     var isPendingOutcome: Bool {
@@ -107,7 +120,8 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         isOutcomeTracked: Bool = false,
         isRescue: Bool = false,
         blockerReason: PomodoroBlockerReason? = nil,
-        blockerNextStep: String? = nil
+        blockerNextStep: String? = nil,
+        focusSegments: [PomodoroFocusSegment]? = nil
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -120,6 +134,11 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         self.isRescue = isRescue
         self.blockerReason = blockerReason
         self.blockerNextStep = Self.normalizedIntent(blockerNextStep)
+        self.focusSegments = Self.normalizedFocusSegments(
+            focusSegments,
+            fallbackIntent: intent,
+            plannedMinutes: plannedMinutes
+        )
     }
 
     init(from decoder: any Decoder) throws {
@@ -136,6 +155,11 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         isRescue = try container.decodeIfPresent(Bool.self, forKey: .isRescue) ?? false
         blockerReason = try container.decodeIfPresent(PomodoroBlockerReason.self, forKey: .blockerReason)
         blockerNextStep = Self.normalizedIntent(try container.decodeIfPresent(String.self, forKey: .blockerNextStep))
+        focusSegments = Self.normalizedFocusSegments(
+            try container.decodeIfPresent([PomodoroFocusSegment].self, forKey: .focusSegments),
+            fallbackIntent: intent,
+            plannedMinutes: plannedMinutes
+        )
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -152,6 +176,7 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         try container.encode(isRescue, forKey: .isRescue)
         try container.encodeIfPresent(blockerReason, forKey: .blockerReason)
         try container.encodeIfPresent(blockerNextStep, forKey: .blockerNextStep)
+        try container.encode(focusSegments, forKey: .focusSegments)
     }
 
     nonisolated static func normalizedIntent(_ intent: String?) -> String? {
@@ -161,6 +186,39 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
 
         let trimmedIntent = intent.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedIntent.isEmpty ? nil : trimmedIntent
+    }
+
+    nonisolated static func primaryIntent(from focusSegments: [PomodoroFocusSegment]) -> String? {
+        focusSegments.compactMap(\.intent).first
+    }
+
+    nonisolated private static func normalizedFocusSegments(
+        _ focusSegments: [PomodoroFocusSegment]?,
+        fallbackIntent: String?,
+        plannedMinutes: Int
+    ) -> [PomodoroFocusSegment] {
+        let validSegments = focusSegments?
+            .filter { $0.focusSeconds > 0 }
+            .map { segment in
+                PomodoroFocusSegment(
+                    id: segment.id,
+                    intent: segment.intent,
+                    startedFocusSeconds: segment.startedFocusSeconds,
+                    focusSeconds: segment.focusSeconds
+                )
+            } ?? []
+
+        if !validSegments.isEmpty {
+            return validSegments
+        }
+
+        return [
+            PomodoroFocusSegment(
+                intent: fallbackIntent,
+                startedFocusSeconds: 0,
+                focusSeconds: TimeInterval(max(plannedMinutes, 0) * 60)
+            )
+        ]
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -175,5 +233,6 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
         case isRescue
         case blockerReason
         case blockerNextStep
+        case focusSegments
     }
 }

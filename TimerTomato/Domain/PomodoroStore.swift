@@ -105,6 +105,8 @@ final class PomodoroStore {
     private(set) var activePlannedMinutes: Int?
     private(set) var activePauseBeforeSeconds: TimeInterval?
     private(set) var activeFocusIntent: String?
+    private(set) var activeFocusSegments: [PomodoroFocusSegment] = []
+    private(set) var activeFocusSegmentStartedFocusSeconds: TimeInterval?
     private(set) var activeIsRescueSession = false
     private(set) var pausedRemainingSeconds: TimeInterval?
     private(set) var pendingOutcomeSessionID: UUID?
@@ -269,6 +271,10 @@ final class PomodoroStore {
         PomodoroSession.normalizedIntent(activeFocusIntent)
     }
 
+    var activeFocusTopicText: String {
+        PomodoroFormatters.topicTitle(activeFocusIntent)
+    }
+
     var pendingOutcomeSession: PomodoroSession? {
         guard let pendingOutcomeSessionID else {
             return nil
@@ -289,6 +295,10 @@ final class PomodoroStore {
 
     var canStartBreak: Bool {
         status == .idle && lastCompletedAt != nil && pendingOutcomeSessionID == nil
+    }
+
+    var canChangeActiveFocusIntent: Bool {
+        status != .idle && activeTimerKind == .focus && pendingOutcomeSessionID == nil
     }
 
     var sessionHistory: [PomodoroSession] {
@@ -434,6 +444,8 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeFocusSegments = []
+        activeFocusSegmentStartedFocusSeconds = nil
         activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = nowProvider()
@@ -479,6 +491,26 @@ final class PomodoroStore {
 
     func clearFocusIntent() {
         pendingFocusIntent = ""
+    }
+
+    func changeActiveFocusIntent(_ intent: String?) {
+        guard canChangeActiveFocusIntent else {
+            return
+        }
+
+        updateCurrentDate()
+
+        let normalizedIntent = PomodoroSession.normalizedIntent(intent)
+        guard normalizedIntent != activeFocusIntentText else {
+            return
+        }
+
+        let elapsedFocusSeconds = activeElapsedFocusSeconds()
+        closeActiveFocusSegment(at: elapsedFocusSeconds)
+        activeFocusIntent = normalizedIntent
+        activeFocusSegmentStartedFocusSeconds = elapsedFocusSeconds
+
+        persistSnapshot()
     }
 
     func completePendingOutcome(
@@ -575,6 +607,10 @@ final class PomodoroStore {
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
 
         return fetchSessions(startingAt: dayStart, before: dayEnd)
+    }
+
+    func topicSummaries(on date: Date) -> [PomodoroTopicSummary] {
+        PomodoroTopicSummary.summaries(for: sessions(on: date))
     }
 
     func historyDays(containing date: Date) -> [PomodoroHistoryDay] {
@@ -756,12 +792,71 @@ final class PomodoroStore {
         activePlannedMinutes = minutes
         activePauseBeforeSeconds = pauseBeforeSeconds
         activeIsRescueSession = isRescueSession
+        activeFocusSegments = []
+        activeFocusSegmentStartedFocusSeconds = kind == .focus ? 0 : nil
         pausedRemainingSeconds = nil
         status = .running
         currentDate = startDate
 
         persistSnapshot()
         scheduleTimer()
+    }
+
+    private func activeElapsedFocusSeconds() -> TimeInterval {
+        guard activeTimerKind == .focus else {
+            return 0
+        }
+
+        let plannedSeconds = TimeInterval((activePlannedMinutes ?? selectedMinutes) * 60)
+
+        switch status {
+        case .idle:
+            return 0
+        case .paused:
+            return min(max(plannedSeconds - (pausedRemainingSeconds ?? 0), 0), plannedSeconds)
+        case .running:
+            let remainingSeconds = max(0, activeEndAt?.timeIntervalSince(currentDate) ?? 0)
+            return min(max(plannedSeconds - remainingSeconds, 0), plannedSeconds)
+        }
+    }
+
+    private func closeActiveFocusSegment(at elapsedFocusSeconds: TimeInterval) {
+        guard activeTimerKind == .focus else {
+            return
+        }
+
+        let segmentStart = activeFocusSegmentStartedFocusSeconds ?? 0
+        let clampedStart = min(max(segmentStart, 0), elapsedFocusSeconds)
+        let focusSeconds = max(0, elapsedFocusSeconds - clampedStart)
+
+        guard focusSeconds > 0 else {
+            return
+        }
+
+        activeFocusSegments.append(
+            PomodoroFocusSegment(
+                intent: activeFocusIntent,
+                startedFocusSeconds: clampedStart,
+                focusSeconds: focusSeconds
+            )
+        )
+    }
+
+    private func closedFocusSegments(plannedMinutes: Int) -> [PomodoroFocusSegment] {
+        let plannedSeconds = TimeInterval(max(plannedMinutes, 0) * 60)
+        closeActiveFocusSegment(at: plannedSeconds)
+
+        if activeFocusSegments.isEmpty {
+            return [
+                PomodoroFocusSegment(
+                    intent: activeFocusIntent,
+                    startedFocusSeconds: 0,
+                    focusSeconds: plannedSeconds
+                )
+            ]
+        }
+
+        return activeFocusSegments
     }
 
     private func refreshForToday(at date: Date) {
@@ -865,15 +960,17 @@ final class PomodoroStore {
         let plannedMinutes = activePlannedMinutes ?? selectedMinutes
         let endedAt = max(completionDate, startedAt)
         let isRescueSession = activeIsRescueSession
+        let completedFocusSegments = closedFocusSegments(plannedMinutes: plannedMinutes)
         let session = PomodoroSession(
             startedAt: startedAt,
             endedAt: endedAt,
             plannedMinutes: plannedMinutes,
             pauseBeforeSeconds: activePauseBeforeSeconds,
-            intent: activeFocusIntent,
+            intent: PomodoroSession.primaryIntent(from: completedFocusSegments) ?? activeFocusIntent,
             outcome: nil,
             isOutcomeTracked: true,
-            isRescue: isRescueSession
+            isRescue: isRescueSession,
+            focusSegments: completedFocusSegments
         )
 
         persistSession(session)
@@ -887,6 +984,8 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeFocusSegments = []
+        activeFocusSegmentStartedFocusSeconds = nil
         activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = endedAt
@@ -916,6 +1015,8 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeFocusSegments = []
+        activeFocusSegmentStartedFocusSeconds = nil
         activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = endedAt
@@ -975,6 +1076,8 @@ final class PomodoroStore {
         activePlannedMinutes = snapshot.activePlannedMinutes
         activePauseBeforeSeconds = snapshot.activePauseBeforeSeconds
         activeFocusIntent = PomodoroSession.normalizedIntent(snapshot.activeFocusIntent)
+        activeFocusSegments = snapshot.activeFocusSegments ?? []
+        activeFocusSegmentStartedFocusSeconds = snapshot.activeFocusSegmentStartedFocusSeconds
         activeIsRescueSession = snapshot.activeIsRescueSession ?? false
         pausedRemainingSeconds = snapshot.pausedRemainingSeconds
         pendingFocusIntent = snapshot.pendingFocusIntent ?? ""
@@ -1005,6 +1108,8 @@ final class PomodoroStore {
             pausedRemainingSeconds: pausedRemainingSeconds,
             pendingFocusIntent: PomodoroSession.normalizedIntent(pendingFocusIntent),
             activeFocusIntent: activeFocusIntent,
+            activeFocusSegments: activeFocusSegments,
+            activeFocusSegmentStartedFocusSeconds: activeFocusSegmentStartedFocusSeconds,
             pendingOutcomeSessionID: pendingOutcomeSessionID,
             activeIsRescueSession: activeIsRescueSession
         )
