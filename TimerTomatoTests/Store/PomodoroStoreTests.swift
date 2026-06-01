@@ -424,7 +424,7 @@ struct TimerTomatoTests {
 
         #expect(completedFeedback.kind == .focusWin)
         #expect(completedFeedback.title == "+1 Session")
-        #expect(completedFeedback.detail == "Abgeschlossen · Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
+        #expect(completedFeedback.detail == "Heute 1/1 · Woche 1/4")
         #expect(completedFeedback.continuationIntent == nil)
         #expect(completedFeedback.offersRescueAction == false)
 
@@ -443,7 +443,7 @@ struct TimerTomatoTests {
 
         #expect(progressedFeedback.kind == .focusWin)
         #expect(progressedFeedback.title == "+1 Session")
-        #expect(progressedFeedback.detail == "Weiter vorgemerkt · Heute 1/1 · Diese Woche 1/4 · Ziel-Serie: 1 Tag")
+        #expect(progressedFeedback.detail == "Heute 1/1 · Woche 1/4")
         #expect(progressedFeedback.continuationIntent == "Lernen")
         #expect(progressedFeedback.offersRescueAction == false)
     }
@@ -545,7 +545,7 @@ struct TimerTomatoTests {
 
         #expect(feedback.kind == .momentum)
         #expect(feedback.title == "Drangeblieben")
-        #expect(feedback.detail == "10-min Reset · Diese Woche 0/4")
+        #expect(feedback.detail == "10-min Reset · Woche 0/4")
         #expect(feedback.offersRescueAction == false)
     }
 
@@ -655,7 +655,7 @@ struct TimerTomatoTests {
 
         #expect(feedback.kind == .blocked)
         #expect(feedback.title == "Blockade notiert")
-        #expect(feedback.detail == "Diese Woche 1x blockiert · häufig: Zu groß")
+        #expect(feedback.detail == "1x blockiert · Zu groß")
         #expect(feedback.offersRescueAction)
     }
 

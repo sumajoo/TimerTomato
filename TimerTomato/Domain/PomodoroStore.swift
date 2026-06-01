@@ -581,7 +581,7 @@ final class PomodoroStore {
             return PomodoroCompletionFeedback(
                 kind: .momentum,
                 title: "Drangeblieben",
-                detail: "\(session.plannedMinutes)-min Reset · Diese Woche \(weekText)",
+                detail: "\(session.plannedMinutes)-min Reset · Woche \(weekText)",
                 continuationIntent: nil,
                 offersRescueAction: false
             )
@@ -592,20 +592,12 @@ final class PomodoroStore {
             sessions: sessions(on: session.endedAt),
             dailyGoalSessions: dailyGoalSessions
         )
-        let streakText = streakSummary(endingAt: session.endedAt).currentText
-
         let continuationIntent = outcome == .progressed ? session.intentTitle : nil
-        let progressPrefix: String
-        if outcome == .progressed {
-            progressPrefix = continuationIntent == nil ? "Weiter" : "Weiter vorgemerkt"
-        } else {
-            progressPrefix = "Abgeschlossen"
-        }
 
         return PomodoroCompletionFeedback(
             kind: .focusWin,
             title: "+1 Session",
-            detail: "\(progressPrefix) · Heute \(day.goalCountText) · Diese Woche \(weekText) · Ziel-Serie: \(streakText)",
+            detail: "Heute \(day.goalCountText) · Woche \(weekText)",
             continuationIntent: continuationIntent,
             offersRescueAction: false
         )
@@ -1186,10 +1178,10 @@ final class PomodoroStore {
         let summary = blockerSummary(containing: date)
 
         if let mostCommonReason = summary.mostCommonReason {
-            return "Diese Woche \(summary.blockedCount)x blockiert · häufig: \(mostCommonReason.title)"
+            return "\(summary.blockedCount)x blockiert · \(mostCommonReason.title)"
         }
 
-        return "Diese Woche \(summary.blockedCount)x blockiert"
+        return "\(summary.blockedCount)x blockiert"
     }
 
     private func streakSummary(endingAt date: Date) -> PomodoroStreakSummary {
