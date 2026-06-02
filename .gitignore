@@ -34,3 +34,6 @@ Build/
 
 # SwiftPM local state
 .swiftpm/
+
+# Repo agent instructions
+!AGENTS.md
