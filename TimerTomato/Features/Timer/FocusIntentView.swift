@@ -13,6 +13,9 @@ struct FocusIntentView: View {
     @Bindable var store: PomodoroStore
 
     private let chipLayoutHeight: CGFloat = 24
+    private let customChipMinimumWidth: CGFloat = 112
+    private let customChipMaximumWidth: CGFloat = 218
+    private let customChipTextHorizontalBuffer: CGFloat = 48
 
     private var normalizedIntent: String? {
         PomodoroSession.normalizedIntent(store.pendingFocusIntent)
@@ -26,58 +29,50 @@ struct FocusIntentView: View {
         return isIntentFieldFocused || !PomodoroStore.focusIntentSuggestions.contains(normalizedIntent)
     }
 
+    private var customIntentText: String {
+        guard
+            let normalizedIntent,
+            !PomodoroStore.focusIntentSuggestions.contains(normalizedIntent)
+        else {
+            return ""
+        }
+
+        return normalizedIntent
+    }
+
+    private var customIntentChipWidth: CGFloat {
+        let measuredText = customIntentText.isEmpty ? "Eigenes Ziel" : customIntentText
+        let estimatedTextWidth = CGFloat(measuredText.count) * 6.6
+        let preferredWidth = estimatedTextWidth + customChipTextHorizontalBuffer
+
+        return min(max(preferredWidth, customChipMinimumWidth), customChipMaximumWidth)
+    }
+
+    private var customIntentFieldWidth: CGFloat {
+        max(56, customIntentChipWidth - customChipTextHorizontalBuffer)
+    }
+
     var body: some View {
-        VStack(spacing: 5) {
-            VStack(spacing: 1) {
-                HStack(spacing: 4) {
-                    ForEach(Array(PomodoroStore.focusIntentSuggestions.prefix(3)), id: \.self) { suggestion in
-                        intentChip(suggestion)
-                    }
-                }
-
-                HStack(spacing: 4) {
-                    ForEach(Array(PomodoroStore.focusIntentSuggestions.suffix(1)), id: \.self) { suggestion in
-                        intentChip(suggestion)
-                    }
-
-                    customIntentChip
+        VStack(spacing: 1) {
+            HStack(spacing: 4) {
+                ForEach(Array(PomodoroStore.focusIntentSuggestions.prefix(3)), id: \.self) { suggestion in
+                    intentChip(suggestion)
                 }
             }
 
-            HStack(spacing: 6) {
-                Image(systemName: "target")
-                    .font(.caption)
-                    .foregroundStyle(TimerTomatoDesign.mint)
-                    .accessibilityHidden(true)
-
-                TextField("Eigenes Ziel", text: $store.pendingFocusIntent)
-                    .textFieldStyle(.plain)
-                    .font(.caption)
-                    .lineLimit(1)
-                    .focused($isIntentFieldFocused)
-
-                if normalizedIntent != nil {
-                    Button("Ziel leeren", systemImage: "xmark.circle.fill", action: store.clearFocusIntent)
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(TimerTomatoDesign.tertiaryText)
-                        .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
-                        .help("Fokus-Ziel leeren")
+            HStack(spacing: 4) {
+                ForEach(Array(PomodoroStore.focusIntentSuggestions.suffix(1)), id: \.self) { suggestion in
+                    intentChip(suggestion)
                 }
+
+                customIntentChip
             }
-            .padding(.horizontal, 10)
-            .frame(height: TimerTomatoDesign.compactHitTarget)
-            .background {
-                Capsule()
-                    .fill(TimerTomatoDesign.surfaceFill)
-            }
-            .glassEffect(.regular.interactive(), in: .capsule)
         }
         .accessibilityElement(children: .contain)
     }
 
     private func intentChip(_ suggestion: String) -> some View {
-        let isSelected = normalizedIntent == suggestion
+        let isSelected = normalizedIntent == suggestion && !isCustomIntentActive
 
         return Button(suggestion) {
             store.selectFocusIntentSuggestion(suggestion)
@@ -97,21 +92,44 @@ struct FocusIntentView: View {
     }
 
     private var customIntentChip: some View {
-        Button("Eigenes Ziel", systemImage: "square.and.pencil") {
+        HStack(spacing: 6) {
+            Image(systemName: "square.and.pencil")
+                .font(.caption2)
+                .foregroundStyle(isCustomIntentActive ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                .accessibilityHidden(true)
+
+            TextField("Eigenes Ziel", text: customIntentBinding)
+                .textFieldStyle(.plain)
+                .font(.caption2.weight(isCustomIntentActive ? .semibold : .medium))
+                .foregroundStyle(isCustomIntentActive ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                .lineLimit(1)
+                .focused($isIntentFieldFocused)
+                .frame(width: customIntentFieldWidth)
+        }
+        .padding(.horizontal, 10)
+        .frame(width: customIntentChipWidth, height: 24)
+        .background { intentChipBackground(isActive: isCustomIntentActive) }
+        .timerTomatoHitTarget(minWidth: customChipMinimumWidth, minHeight: chipLayoutHeight)
+        .contentShape(Capsule())
+        .onTapGesture {
+            if let normalizedIntent, PomodoroStore.focusIntentSuggestions.contains(normalizedIntent) {
+                store.clearFocusIntent()
+            }
+
             isIntentFieldFocused = true
         }
-        .font(.caption2)
-        .fontWeight(isCustomIntentActive ? .semibold : .medium)
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-        .labelStyle(.titleAndIcon)
-        .foregroundStyle(isCustomIntentActive ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
-        .frame(height: 24)
-        .padding(.horizontal, 10)
-        .background { intentChipBackground(isActive: isCustomIntentActive) }
-        .timerTomatoHitTarget(minWidth: 108, minHeight: chipLayoutHeight)
-        .buttonStyle(.plain)
         .help("Eigenes Fokus-Ziel eingeben")
+    }
+
+    private var customIntentBinding: Binding<String> {
+        Binding(
+            get: {
+                customIntentText
+            },
+            set: { text in
+                store.pendingFocusIntent = text
+            }
+        )
     }
 
     private func intentChipBackground(isActive: Bool) -> some View {

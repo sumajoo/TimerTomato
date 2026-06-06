@@ -11,6 +11,8 @@ struct SessionListView: View {
     let store: PomodoroStore
 
     private let todayContentMaxHeight: CGFloat = 166
+    private let scrollBottomInset: CGFloat = 34
+    private let scrollFadeHeight: CGFloat = 18
 
     private var sessions: [PomodoroSession] {
         store.sessions
@@ -18,6 +20,20 @@ struct SessionListView: View {
 
     private var orderedSessions: [PomodoroSession] {
         Array(sessions.reversed())
+    }
+
+    private var scrollFadeMask: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(.black)
+
+            LinearGradient(
+                colors: [.black, .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: scrollFadeHeight)
+        }
     }
 
     var body: some View {
@@ -49,10 +65,13 @@ struct SessionListView: View {
                         }
                     }
                     .padding(.horizontal, 2)
-                    .padding(.bottom, 6)
                 }
-                .scrollIndicators(.automatic)
+                .contentMargins(.bottom, scrollBottomInset, for: .scrollContent)
+                .scrollIndicators(.hidden)
                 .frame(height: todayContentMaxHeight)
+                .mask {
+                    scrollFadeMask
+                }
             }
         }
     }
