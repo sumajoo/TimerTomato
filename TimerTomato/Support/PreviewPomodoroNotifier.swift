@@ -21,5 +21,9 @@ final class PreviewPomodoroNotifier: PomodoroNotifying {
     func notifySessionCompleted(plannedMinutes: Int) async {}
 
     func notifyBreakCompleted(plannedMinutes: Int) async {}
+
+    func scheduleChecklistReminder(_ reminder: PomodoroChecklistReminder) async {}
+
+    func cancelChecklistReminders(identifiers: [String]) {}
 }
 #endif

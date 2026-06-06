@@ -103,10 +103,12 @@ enum TimerTomatoPreviewData {
         case .idle:
             break
         case .focusRunning:
+            store.pendingFocusIntent = "Lernen"
             store.start()
             now = referenceDate.addingTimeInterval(54)
             store.tick()
         case .focusPaused:
+            store.pendingFocusIntent = "Lernen"
             store.start()
             now = referenceDate.addingTimeInterval(9 * 60)
             store.pause()

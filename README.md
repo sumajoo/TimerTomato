@@ -8,10 +8,11 @@ It is designed around small, realistic focus wins: set a lightweight intent, run
 - Menu bar first Pomodoro timer for macOS
 - Custom focus durations and quick duration presets
 - Optional session intent before starting a focus block
+- Per-goal focus checklist window with editable local templates and timed reminders
 - Focus Wins outcome flow: completed, progressed, or blocked
 - Weekly Quest, daily goals, streaks, momentum, and rescue focus sessions
 - Local history with day and week summaries
-- Local notifications for focus and break transitions
+- Local notifications for focus, break, and checklist reminders
 - SwiftData-backed local persistence
 
 ## Requirements

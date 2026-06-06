@@ -96,6 +96,16 @@ final class PomodoroStore {
         }
     }
 
+    var checklistTemplates: [String: PomodoroChecklist] = [:] {
+        didSet {
+            guard !isRestoringSnapshot else {
+                return
+            }
+
+            persistSnapshot()
+        }
+    }
+
     private(set) var status = PomodoroStatus.idle
     private(set) var sessions: [PomodoroSession] = []
     private(set) var currentDate: Date
@@ -105,6 +115,8 @@ final class PomodoroStore {
     private(set) var activePlannedMinutes: Int?
     private(set) var activePauseBeforeSeconds: TimeInterval?
     private(set) var activeFocusIntent: String?
+    private(set) var activeFocusChecklist: PomodoroChecklist?
+    private(set) var focusChecklistWindowRequestID: UUID?
     private(set) var activeFocusSegments: [PomodoroFocusSegment] = []
     private(set) var activeFocusSegmentStartedFocusSeconds: TimeInterval?
     private(set) var activeIsRescueSession = false
@@ -275,6 +287,10 @@ final class PomodoroStore {
         PomodoroFormatters.topicTitle(activeFocusIntent)
     }
 
+    var activeFocusChecklistGoalText: String? {
+        activeFocusChecklist?.goal
+    }
+
     var pendingOutcomeSession: PomodoroSession? {
         guard let pendingOutcomeSessionID else {
             return nil
@@ -352,6 +368,8 @@ final class PomodoroStore {
 
         let focusIntent = PomodoroSession.normalizedIntent(pendingFocusIntent)
         activeFocusIntent = focusIntent
+        activeFocusChecklist = focusIntent.map { checklistTemplate(for: $0).resettingCompletions() }
+        focusChecklistWindowRequestID = activeFocusChecklist == nil ? nil : UUID()
         pendingFocusIntent = ""
 
         startTimer(
@@ -391,6 +409,8 @@ final class PomodoroStore {
         }
 
         activeFocusIntent = Self.rescueFocusIntent
+        activeFocusChecklist = nil
+        focusChecklistWindowRequestID = nil
         pendingFocusIntent = ""
 
         startTimer(
@@ -423,6 +443,7 @@ final class PomodoroStore {
             return
         }
 
+        cancelActiveChecklistReminders()
         pausedRemainingSeconds = TimeInterval(remainingSeconds)
         status = .paused
 
@@ -444,10 +465,12 @@ final class PomodoroStore {
 
         persistSnapshot()
         scheduleTimer()
+        scheduleActiveChecklistReminders()
     }
 
     func reset() {
         runtime.invalidateTimer()
+        cancelActiveChecklistReminders()
 
         status = .idle
         activeTimerKind = .focus
@@ -456,6 +479,8 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeFocusChecklist = nil
+        focusChecklistWindowRequestID = nil
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = nil
         activeIsRescueSession = false
@@ -505,6 +530,103 @@ final class PomodoroStore {
         pendingFocusIntent = ""
     }
 
+    func checklistTemplate(for goal: String) -> PomodoroChecklist {
+        guard let normalizedGoal = PomodoroSession.normalizedIntent(goal) else {
+            return PomodoroChecklist(goal: "")
+        }
+
+        return checklistTemplates[normalizedGoal] ?? PomodoroChecklist.defaultTemplate(for: normalizedGoal)
+    }
+
+    func addChecklistItem(to goal: String) {
+        guard let normalizedGoal = PomodoroSession.normalizedIntent(goal) else {
+            return
+        }
+
+        var template = checklistTemplate(for: normalizedGoal)
+        guard template.items.count < PomodoroChecklist.maximumItems else {
+            return
+        }
+
+        let item = PomodoroChecklistItem(title: "Neuer Schritt")
+        template.items.append(item)
+        saveChecklistTemplate(template)
+
+        if var activeChecklist = activeFocusChecklist, activeChecklist.goal == normalizedGoal {
+            activeChecklist.items.append(item)
+            activeFocusChecklist = activeChecklist
+            persistSnapshot()
+            rescheduleActiveChecklistReminders()
+        }
+    }
+
+    func updateChecklistItem(_ itemID: UUID, title: String, in goal: String) {
+        guard let normalizedGoal = PomodoroSession.normalizedIntent(goal) else {
+            return
+        }
+
+        var template = checklistTemplate(for: normalizedGoal)
+        updateChecklistItem(itemID, title: title, in: &template)
+        saveChecklistTemplate(template)
+
+        if var activeChecklist = activeFocusChecklist, activeChecklist.goal == normalizedGoal {
+            updateChecklistItem(itemID, title: title, in: &activeChecklist)
+            activeFocusChecklist = activeChecklist
+            persistSnapshot()
+            rescheduleActiveChecklistReminders()
+        }
+    }
+
+    func updateChecklistItem(_ itemID: UUID, reminderMinuteOffset: Int, in goal: String) {
+        guard let normalizedGoal = PomodoroSession.normalizedIntent(goal) else {
+            return
+        }
+
+        var template = checklistTemplate(for: normalizedGoal)
+        updateChecklistItem(itemID, reminderMinuteOffset: reminderMinuteOffset, in: &template)
+        saveChecklistTemplate(template)
+
+        if var activeChecklist = activeFocusChecklist, activeChecklist.goal == normalizedGoal {
+            updateChecklistItem(itemID, reminderMinuteOffset: reminderMinuteOffset, in: &activeChecklist)
+            activeFocusChecklist = activeChecklist
+            persistSnapshot()
+            rescheduleActiveChecklistReminders()
+        }
+    }
+
+    func deleteChecklistItem(_ itemID: UUID, from goal: String) {
+        guard let normalizedGoal = PomodoroSession.normalizedIntent(goal) else {
+            return
+        }
+
+        var template = checklistTemplate(for: normalizedGoal)
+        template.items.removeAll { $0.id == itemID }
+        saveChecklistTemplate(template)
+
+        if var activeChecklist = activeFocusChecklist, activeChecklist.goal == normalizedGoal {
+            cancelChecklistReminder(for: itemID)
+            activeChecklist.items.removeAll { $0.id == itemID }
+            activeFocusChecklist = activeChecklist
+            persistSnapshot()
+            rescheduleActiveChecklistReminders()
+        }
+    }
+
+    func setChecklistItemCompleted(_ itemID: UUID, isCompleted: Bool) {
+        guard var checklist = activeFocusChecklist else {
+            return
+        }
+
+        guard let index = checklist.items.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        checklist.items[index].isCompleted = isCompleted
+        activeFocusChecklist = checklist
+        persistSnapshot()
+        rescheduleActiveChecklistReminders()
+    }
+
     func changeActiveFocusIntent(_ intent: String?) {
         guard canChangeActiveFocusIntent else {
             return
@@ -519,10 +641,13 @@ final class PomodoroStore {
 
         let elapsedFocusSeconds = activeElapsedFocusSeconds()
         closeActiveFocusSegment(at: elapsedFocusSeconds)
+        cancelActiveChecklistReminders()
         activeFocusIntent = normalizedIntent
+        activeFocusChecklist = normalizedIntent.map { checklistTemplate(for: $0).resettingCompletions() }
         activeFocusSegmentStartedFocusSeconds = elapsedFocusSeconds
 
         persistSnapshot()
+        scheduleActiveChecklistReminders()
     }
 
     func completePendingOutcome(
@@ -792,6 +917,41 @@ final class PomodoroStore {
         min(max(sessions, minimumWeeklyGoalSessions), maximumWeeklyGoalSessions)
     }
 
+    private func saveChecklistTemplate(_ checklist: PomodoroChecklist) {
+        guard !checklist.goal.isEmpty else {
+            return
+        }
+
+        var updatedTemplates = checklistTemplates
+        updatedTemplates[checklist.goal] = checklist.asTemplate()
+        checklistTemplates = updatedTemplates
+    }
+
+    private func updateChecklistItem(
+        _ itemID: UUID,
+        title: String,
+        in checklist: inout PomodoroChecklist
+    ) {
+        guard let index = checklist.items.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        checklist.items[index].title = PomodoroChecklistItem.normalizedTitle(title)
+    }
+
+    private func updateChecklistItem(
+        _ itemID: UUID,
+        reminderMinuteOffset: Int,
+        in checklist: inout PomodoroChecklist
+    ) {
+        guard let index = checklist.items.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        checklist.items[index].reminderMinuteOffset = PomodoroChecklistItem
+            .normalizedReminderMinuteOffset(reminderMinuteOffset)
+    }
+
     private func startTimer(
         kind: PomodoroTimerKind,
         minutes: Int,
@@ -815,6 +975,7 @@ final class PomodoroStore {
 
         persistSnapshot()
         scheduleTimer()
+        scheduleActiveChecklistReminders()
     }
 
     private func activeElapsedFocusSeconds() -> TimeInterval {
@@ -992,6 +1153,7 @@ final class PomodoroStore {
         sessions = sessions(on: endedAt)
         lastCompletedAt = endedAt
         pendingOutcomeSessionID = session.id
+        cancelActiveChecklistReminders()
         status = .idle
         activeTimerKind = .focus
         activeStartedAt = nil
@@ -999,6 +1161,8 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeFocusChecklist = nil
+        focusChecklistWindowRequestID = nil
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = nil
         activeIsRescueSession = false
@@ -1030,6 +1194,8 @@ final class PomodoroStore {
         activePlannedMinutes = nil
         activePauseBeforeSeconds = nil
         activeFocusIntent = nil
+        activeFocusChecklist = nil
+        focusChecklistWindowRequestID = nil
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = nil
         activeIsRescueSession = false
@@ -1042,6 +1208,68 @@ final class PomodoroStore {
 
         Task {
             await notifier.notifyBreakCompleted(plannedMinutes: plannedMinutes)
+        }
+    }
+
+    private func checklistReminderIdentifier(for itemID: UUID) -> String {
+        "TimerTomato.Checklist.\(itemID.uuidString)"
+    }
+
+    private func cancelChecklistReminder(for itemID: UUID) {
+        notifier.cancelChecklistReminders(identifiers: [checklistReminderIdentifier(for: itemID)])
+    }
+
+    private func cancelActiveChecklistReminders() {
+        guard let checklist = activeFocusChecklist else {
+            return
+        }
+
+        notifier.cancelChecklistReminders(
+            identifiers: checklist.items.map { checklistReminderIdentifier(for: $0.id) }
+        )
+    }
+
+    private func rescheduleActiveChecklistReminders() {
+        cancelActiveChecklistReminders()
+        scheduleActiveChecklistReminders()
+    }
+
+    private func scheduleActiveChecklistReminders() {
+        guard
+            status == .running,
+            activeTimerKind == .focus,
+            let checklist = activeFocusChecklist
+        else {
+            return
+        }
+
+        let elapsedSeconds = activeElapsedFocusSeconds()
+        let plannedSeconds = TimeInterval((activePlannedMinutes ?? selectedMinutes) * 60)
+        let reminders = checklist.items.compactMap { item -> PomodoroChecklistReminder? in
+            guard !item.isCompleted, !item.title.isEmpty else {
+                return nil
+            }
+
+            let reminderSeconds = TimeInterval(item.reminderMinuteOffset * 60)
+            guard reminderSeconds <= plannedSeconds, reminderSeconds >= elapsedSeconds else {
+                return nil
+            }
+
+            return PomodoroChecklistReminder(
+                identifier: checklistReminderIdentifier(for: item.id),
+                title: item.title,
+                delaySeconds: reminderSeconds - elapsedSeconds
+            )
+        }
+
+        guard !reminders.isEmpty else {
+            return
+        }
+
+        Task {
+            for reminder in reminders {
+                await notifier.scheduleChecklistReminder(reminder)
+            }
         }
     }
 
@@ -1091,6 +1319,9 @@ final class PomodoroStore {
         activePlannedMinutes = snapshot.activePlannedMinutes
         activePauseBeforeSeconds = snapshot.activePauseBeforeSeconds
         activeFocusIntent = PomodoroSession.normalizedIntent(snapshot.activeFocusIntent)
+        checklistTemplates = snapshot.checklistTemplates ?? [:]
+        activeFocusChecklist = snapshot.activeFocusChecklist
+        focusChecklistWindowRequestID = nil
         activeFocusSegments = snapshot.activeFocusSegments ?? []
         activeFocusSegmentStartedFocusSeconds = snapshot.activeFocusSegmentStartedFocusSeconds
         activeIsRescueSession = snapshot.activeIsRescueSession ?? false
@@ -1123,6 +1354,8 @@ final class PomodoroStore {
             pausedRemainingSeconds: pausedRemainingSeconds,
             pendingFocusIntent: PomodoroSession.normalizedIntent(pendingFocusIntent),
             activeFocusIntent: activeFocusIntent,
+            checklistTemplates: checklistTemplates.isEmpty ? nil : checklistTemplates,
+            activeFocusChecklist: activeFocusChecklist,
             activeFocusSegments: activeFocusSegments,
             activeFocusSegmentStartedFocusSeconds: activeFocusSegmentStartedFocusSeconds,
             pendingOutcomeSessionID: pendingOutcomeSessionID,
@@ -1299,6 +1532,7 @@ final class PomodoroStore {
 
         if status == .running {
             scheduleTimer()
+            scheduleActiveChecklistReminders()
         }
     }
 

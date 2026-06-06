@@ -14,6 +14,8 @@ final class TestPomodoroNotifier: PomodoroNotifying {
     private(set) var authorizationRequestCount = 0
     private(set) var completedSessionMinutes: [Int] = []
     private(set) var completedBreakMinutes: [Int] = []
+    private(set) var scheduledChecklistReminders: [PomodoroChecklistReminder] = []
+    private(set) var canceledChecklistReminderIdentifiers: [String] = []
     private var actionHandler: (@MainActor (PomodoroNotificationAction) -> Void)?
 
     func configureActionHandler(_ handler: @escaping @MainActor (PomodoroNotificationAction) -> Void) {
@@ -35,6 +37,14 @@ final class TestPomodoroNotifier: PomodoroNotifying {
 
     func notifyBreakCompleted(plannedMinutes: Int) async {
         completedBreakMinutes.append(plannedMinutes)
+    }
+
+    func scheduleChecklistReminder(_ reminder: PomodoroChecklistReminder) async {
+        scheduledChecklistReminders.append(reminder)
+    }
+
+    func cancelChecklistReminders(identifiers: [String]) {
+        canceledChecklistReminderIdentifiers.append(contentsOf: identifiers)
     }
 
     func perform(action: PomodoroNotificationAction) {

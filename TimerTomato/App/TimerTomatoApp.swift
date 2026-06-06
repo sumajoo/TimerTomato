@@ -44,5 +44,10 @@ struct TimerTomatoApp: App {
             store.refreshLifecycleState()
             store.refreshNotificationPermission()
         }
+
+        Window("Checkliste", id: FocusChecklistWindowView.windowID) {
+            FocusChecklistWindowView(store: store)
+        }
+        .windowResizability(.contentSize)
     }
 }

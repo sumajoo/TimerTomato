@@ -50,6 +50,8 @@ TimerTomato should feel like a calm macOS menu bar tool for small, realistic foc
 - Use `TimerTomatoDesign.minimumHitTarget` (`44`) for normal controls.
 - Use `TimerTomatoDesign.compactHitTarget` (`34`) only for dense inline controls.
 - Keep destructive or reset-style controls visually secondary unless the current state makes them the primary next action.
+- Keep the focus checklist window compact, editable, and quieter than the countdown.
+- Show checklist reminder times as quiet supporting text; retiming controls belong in edit mode.
 
 ## Motion
 
@@ -69,6 +71,7 @@ Before finishing UI work, check:
 
 - Main surface still reads as a compact menu bar app.
 - Primary action is obvious for `idle`, `running`, and `paused`.
+- The checklist window opens only for focus sessions with a goal and does not block timer controls.
 - Pending outcome choices fit without wrapping awkwardly.
 - Today and History surfaces show richer context without overwhelming the timer hero.
 - Light and dark adaptive colors still have enough contrast.

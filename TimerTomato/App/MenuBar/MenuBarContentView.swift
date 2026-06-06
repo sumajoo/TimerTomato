@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MenuBarContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openWindow) private var openWindow
 
     @State private var screen = MenuBarScreen.main
     @State private var selectedHistoryDate = Date()
@@ -57,6 +58,10 @@ struct MenuBarContentView: View {
         .onAppear {
             store.refreshLifecycleState()
             store.refreshNotificationPermission()
+            openChecklistWindowIfNeeded()
+        }
+        .onChange(of: store.focusChecklistWindowRequestID) { _, _ in
+            openChecklistWindowIfNeeded()
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.status)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: store.sessionsCompletedToday)
@@ -71,6 +76,14 @@ struct MenuBarContentView: View {
 
     private func showMain() {
         screen = .main
+    }
+
+    private func openChecklistWindowIfNeeded() {
+        guard store.activeFocusChecklist != nil else {
+            return
+        }
+
+        openWindow(id: FocusChecklistWindowView.windowID)
     }
 }
 

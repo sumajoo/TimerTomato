@@ -13,6 +13,20 @@ The app has two menu bar screens:
 
 The calendar button in `MenuBarHeaderView` opens History and seeds `selectedHistoryDate` with `store.currentDate`. The History back button returns to the main screen. Keep this navigation shallow and explicit.
 
+## Goal Checklist Flow
+
+Goal checklists are optional per-goal todos that appear after a focus timer starts:
+
+1. User chooses a focus goal such as `Lernen`.
+2. `store.start()` starts the timer through the normal focus guard.
+3. If the focus session has a goal, the app opens the small `Fokus-Checklist` window.
+4. The window shows the saved checklist template for that goal, with all items unchecked for the new session.
+5. Each item can have a minute offset such as `Jetzt`, `3 min`, or `6 min`.
+6. While focus runs, the app schedules local checklist reminders with the notification title `Jetzt` and the item text as the body.
+7. User can check, edit, delete, add, or retime steps while the timer runs.
+
+Checklist templates are local and goal-specific. `Lernen` defaults to `Buch öffnen`, `Inhalt lesen`, `3 Minuten laut sagen "Worum geht es hier überhaupt"`, and `3 Stichpunkte machen` with reminders at `Jetzt`, `1 min`, `3 min`, and `6 min`. Goals without a saved template start with an empty checklist.
+
 ## Main Focus Flow
 
 1. User starts from `idle`.
@@ -38,9 +52,9 @@ After a focus session completes, the app must ask what happened before another f
 
 Outcome options:
 
-- Completed: save as a focus win and show compact feedback.
-- Progressed: save as a focus win and offer continuation with the same topic.
-- Blocked: ask for optional reason and next step, then save as blocked feedback.
+- Completed: save as a focus win.
+- Progressed: save as a focus win.
+- Blocked: ask for optional reason and next step, then save as blocked.
 
 Pending outcome should block normal start and break actions. Do not introduce shortcuts that silently skip this step.
 
@@ -108,6 +122,8 @@ Before changing behavior, verify:
 - Store guards still prevent invalid starts.
 - Pending outcome cannot be skipped accidentally.
 - Existing session persistence still records completed focus sessions.
+- Goal checklist templates survive app restore.
+- Active checklist completion state survives app restore while a focus timer is running.
 - Rescue sessions remain distinguishable from normal sessions.
 - Main and History screens still have a single obvious next action.
 - Domain tests cover changed calculations, persistence, or exact copy.

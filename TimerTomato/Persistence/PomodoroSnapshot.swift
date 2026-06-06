@@ -25,6 +25,8 @@ struct PomodoroSnapshot: Codable {
     var pausedRemainingSeconds: TimeInterval?
     var pendingFocusIntent: String? = nil
     var activeFocusIntent: String? = nil
+    var checklistTemplates: [String: PomodoroChecklist]? = nil
+    var activeFocusChecklist: PomodoroChecklist? = nil
     var activeFocusSegments: [PomodoroFocusSegment]? = nil
     var activeFocusSegmentStartedFocusSeconds: TimeInterval? = nil
     var pendingOutcomeSessionID: UUID? = nil

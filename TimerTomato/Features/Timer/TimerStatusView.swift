@@ -10,8 +10,6 @@ import SwiftUI
 struct TimerStatusView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var completionFeedback: PomodoroCompletionFeedback?
-
     @Bindable var store: PomodoroStore
 
     private var accentColor: Color {
@@ -53,11 +51,6 @@ struct TimerStatusView: View {
                 FocusHeatBorder(intensity: focusHeatIntensity)
             }
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.35), value: focusHeatIntensity)
-        }
-        .onChange(of: store.status) {
-            if store.status == .running {
-                clearCompletionFeedback()
-            }
         }
     }
 
@@ -119,16 +112,6 @@ struct TimerStatusView: View {
                 }
             )
         } else {
-            if let completionFeedback {
-                CompletionFeedbackView(
-                    feedback: completionFeedback,
-                    canStartRescue: store.canStartFocus,
-                    canContinueFocus: store.canStartFocus,
-                    startRescue: startRescueFromFeedback,
-                    continueFocus: continueFocusFromFeedback
-                )
-            }
-
             TimerControlsView(store: store)
         }
     }
@@ -144,25 +127,6 @@ struct TimerStatusView: View {
             blockerReason: blockerReason,
             blockerNextStep: blockerNextStep
         )
-        showCompletionFeedback(store.completionFeedback(for: session, outcome: outcome))
-    }
-
-    private func showCompletionFeedback(_ feedback: PomodoroCompletionFeedback) {
-        completionFeedback = feedback
-    }
-
-    private func startRescueFromFeedback() {
-        clearCompletionFeedback()
-        store.startRescueFocus()
-    }
-
-    private func continueFocusFromFeedback(_ intent: String) {
-        clearCompletionFeedback()
-        store.continueFocus(with: intent)
-    }
-
-    private func clearCompletionFeedback() {
-        completionFeedback = nil
     }
 }
 

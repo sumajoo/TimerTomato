@@ -92,6 +92,33 @@ final class UserNotificationScheduler: NSObject, PomodoroNotifying, UNUserNotifi
         }
     }
 
+    func scheduleChecklistReminder(_ reminder: PomodoroChecklistReminder) async {
+        let content = UNMutableNotificationContent()
+        content.title = "Jetzt"
+        content.body = reminder.title
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: reminder.delaySeconds,
+            repeats: false
+        )
+        let request = UNNotificationRequest(
+            identifier: reminder.identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+        } catch {
+            // Checklist reminders are assistive; timer state must remain independent.
+        }
+    }
+
+    func cancelChecklistReminders(identifiers: [String]) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
