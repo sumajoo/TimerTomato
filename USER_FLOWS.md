@@ -22,8 +22,9 @@ Goal checklists are optional per-goal todos that appear after a focus timer star
 3. If the focus session has a goal, the app opens the small `Fokus-Checklist` window.
 4. The window shows the saved checklist template for that goal, with all items unchecked for the new session.
 5. Each item can have a minute offset such as `Jetzt`, `3 min`, or `6 min`.
-6. While focus runs, the app schedules local checklist reminders with the notification title `Jetzt` and the item text as the body.
-7. User can check, edit, delete, add, or retime steps while the timer runs.
+6. Each checklist has a reminder mode: `Normal` schedules reminders with sound, `Leise` schedules silent reminders, and `Aus` disables checklist reminders.
+7. While focus runs, the main timer can show the next open checklist cue such as `Jetzt: Buch öffnen` or `In 3 min: 3 Stichpunkte machen`.
+8. User can check, edit, delete, add, retime steps, or change the reminder mode while the timer runs.
 
 Checklist templates are local and goal-specific. `Lernen` defaults to `Buch öffnen`, `Inhalt lesen`, `3 Minuten laut sagen "Worum geht es hier überhaupt"`, and `3 Stichpunkte machen` with reminders at `Jetzt`, `1 min`, `3 min`, and `6 min`. Goals without a saved template start with an empty checklist.
 
@@ -42,6 +43,7 @@ Checklist templates are local and goal-specific. `Lernen` defaults to `Buch öff
 
 - `running` shows progress and a pause action.
 - `paused` shows the remaining time and a continue action.
+- Active focus and pause keep the main menu surface focused on timer context, goal context, and the next checklist cue when available.
 - Reset returns to `idle`, clears active timer fields, and does not create a completed session.
 - Focus uses tomato accenting. Break uses mint accenting.
 - The active focus topic can change only while a focus timer is active and no pending outcome exists.
@@ -54,7 +56,7 @@ Outcome options:
 
 - Completed: save as a focus win.
 - Progressed: save as a focus win.
-- Blocked: ask for optional reason and next step, then save as blocked.
+- Blocked: ask for the smallest next step first, with optional blocker reason behind `Grund hinzufügen`, then save as blocked.
 
 Pending outcome should block normal start and break actions. Do not introduce shortcuts that silently skip this step.
 
@@ -102,7 +104,7 @@ The Today section shows current-day progress:
 - topic summary
 - recent sessions, newest first
 
-Today should stay scannable. It is not the place for long coaching copy.
+Today should stay scannable and read-only on the main surface. Goal editing and richer topic detail belong in History.
 
 ## History Flow
 

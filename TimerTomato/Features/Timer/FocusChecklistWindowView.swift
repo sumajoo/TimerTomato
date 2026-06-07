@@ -72,6 +72,10 @@ struct FocusChecklistWindowView: View {
 
     private func checklistContent(_ checklist: PomodoroChecklist) -> some View {
         VStack(alignment: .leading, spacing: 8) {
+            if isEditing {
+                reminderModeControl(goal: checklist.goal)
+            }
+
             if checklist.items.isEmpty {
                 Text("Noch keine Schritte")
                     .font(.callout)
@@ -104,6 +108,32 @@ struct FocusChecklistWindowView: View {
                 .disabled(checklist.items.count >= PomodoroChecklist.maximumItems)
                 .help("Schritt hinzufügen")
             }
+        }
+    }
+
+    private func reminderModeControl(goal: String) -> some View {
+        HStack(spacing: 8) {
+            Label("Erinnerungen", systemImage: "bell")
+                .font(.caption)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
+                .labelStyle(.titleAndIcon)
+
+            Spacer(minLength: 6)
+
+            Picker("Erinnerungen", selection: reminderModeBinding(for: goal)) {
+                ForEach(PomodoroChecklistReminderMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 172)
+        }
+        .padding(.horizontal, 9)
+        .frame(minHeight: TimerTomatoDesign.compactHitTarget)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(TimerTomatoDesign.surfaceFill)
         }
     }
 
@@ -177,6 +207,17 @@ struct FocusChecklistWindowView: View {
             },
             set: { title in
                 store.updateChecklistItem(item.id, title: title, in: goal)
+            }
+        )
+    }
+
+    private func reminderModeBinding(for goal: String) -> Binding<PomodoroChecklistReminderMode> {
+        Binding(
+            get: {
+                store.activeFocusChecklist?.reminderMode ?? store.checklistTemplate(for: goal).reminderMode
+            },
+            set: { reminderMode in
+                store.setChecklistReminderMode(reminderMode, for: goal)
             }
         )
     }

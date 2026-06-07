@@ -76,6 +76,10 @@ struct TimerStatusView: View {
             if store.canChangeActiveFocusIntent {
                 ActiveFocusTopicView(store: store)
             }
+
+            if let activeChecklistCue = store.activeChecklistCue {
+                activeChecklistCueView(activeChecklistCue)
+            }
         }
     }
 
@@ -114,6 +118,27 @@ struct TimerStatusView: View {
         } else {
             TimerControlsView(store: store)
         }
+    }
+
+    private func activeChecklistCueView(_ cue: PomodoroChecklistCue) -> some View {
+        Label {
+            Text("\(cue.timeText): \(cue.title)")
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        } icon: {
+            Image(systemName: cue.isDue ? "checklist.checked" : "checklist")
+                .foregroundStyle(cue.isDue ? TimerTomatoDesign.mint : TimerTomatoDesign.tertiaryText)
+        }
+        .font(.caption)
+        .foregroundStyle(TimerTomatoDesign.secondaryText)
+        .labelStyle(.titleAndIcon)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.compactHitTarget)
+        .background {
+            Capsule()
+                .fill(TimerTomatoDesign.surfaceFill)
+        }
+        .accessibilityLabel("Nächster Checklistenpunkt \(cue.timeText), \(cue.title)")
     }
 
     private func completeOutcome(

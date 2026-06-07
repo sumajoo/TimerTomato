@@ -96,7 +96,7 @@ final class UserNotificationScheduler: NSObject, PomodoroNotifying, UNUserNotifi
         let content = UNMutableNotificationContent()
         content.title = "Jetzt"
         content.body = reminder.title
-        content.sound = .default
+        content.sound = reminder.playsSound ? .default : nil
 
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: reminder.delaySeconds,

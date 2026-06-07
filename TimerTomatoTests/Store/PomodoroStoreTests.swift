@@ -167,6 +167,7 @@ struct TimerTomatoTests {
         #expect(store.activeFocusIntentText == "Lernen")
         #expect(store.pendingFocusIntent.isEmpty)
         #expect(store.activeFocusChecklist?.goal == "Lernen")
+        #expect(store.activeFocusChecklist?.reminderMode == .normal)
         #expect(store.activeFocusChecklist?.items.map(\.title) == PomodoroChecklist.learningDefaultTitles)
         #expect(
             store.activeFocusChecklist?.items.map(\.reminderMinuteOffset)
@@ -215,6 +216,27 @@ struct TimerTomatoTests {
         #expect(restoredTemplate.items.allSatisfy { !$0.isCompleted })
     }
 
+    @Test func checklistReminderModePersistsByGoalAndDefaultsToNormal() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+
+        #expect(store.checklistTemplate(for: "Lernen").reminderMode == .normal)
+
+        store.setChecklistReminderMode(.quiet, for: " Lernen ")
+
+        let restored = makeStore(defaults: defaults, modelContainer: modelContainer, now: { now })
+        #expect(restored.checklistTemplate(for: "Lernen").reminderMode == .quiet)
+
+        let oldChecklistData = """
+        {"goal":"Lernen","items":[]}
+        """.data(using: .utf8)!
+        let decodedChecklist = try? JSONDecoder().decode(PomodoroChecklist.self, from: oldChecklistData)
+
+        #expect(decodedChecklist?.reminderMode == .normal)
+    }
+
     @Test func checklistRemindersAreScheduledForLearningFocus() async {
         let defaults = makeDefaults()
         let notifier = TestPomodoroNotifier()
@@ -230,6 +252,38 @@ struct TimerTomatoTests {
 
         #expect(notifier.scheduledChecklistReminders.map(\.title) == PomodoroChecklist.learningDefaultTitles)
         #expect(notifier.scheduledChecklistReminders.map(\.delaySeconds) == [1, 60, 180, 360])
+        #expect(notifier.scheduledChecklistReminders.allSatisfy { $0.playsSound })
+    }
+
+    @Test func checklistReminderModesControlSchedulingAndSound() async {
+        let quietNotifier = TestPomodoroNotifier()
+        let quietStore = makeStore(
+            defaults: makeDefaults(),
+            now: { date(hour: 9, minute: 0) },
+            notifier: quietNotifier
+        )
+
+        quietStore.setChecklistReminderMode(.quiet, for: "Lernen")
+        quietStore.pendingFocusIntent = "Lernen"
+        quietStore.start()
+        await drainNotificationTasks()
+
+        #expect(quietNotifier.scheduledChecklistReminders.count == PomodoroChecklist.learningDefaultTitles.count)
+        #expect(quietNotifier.scheduledChecklistReminders.allSatisfy { !$0.playsSound })
+
+        let offNotifier = TestPomodoroNotifier()
+        let offStore = makeStore(
+            defaults: makeDefaults(),
+            now: { date(hour: 9, minute: 0) },
+            notifier: offNotifier
+        )
+
+        offStore.setChecklistReminderMode(.off, for: "Lernen")
+        offStore.pendingFocusIntent = "Lernen"
+        offStore.start()
+        await drainNotificationTasks()
+
+        #expect(offNotifier.scheduledChecklistReminders.isEmpty)
     }
 
     @Test func checklistRemindersCancelOnPauseAndResumeRemainingItems() async {
@@ -254,6 +308,7 @@ struct TimerTomatoTests {
         let resumedReminders = Array(notifier.scheduledChecklistReminders.dropFirst(4))
         #expect(resumedReminders.map(\.title) == Array(PomodoroChecklist.learningDefaultTitles.dropFirst(2)))
         #expect(resumedReminders.map(\.delaySeconds) == [60, 240])
+        #expect(resumedReminders.allSatisfy { $0.playsSound })
     }
 
     @Test func activeChecklistCompletionRestoresDuringRunningFocus() async {
@@ -281,6 +336,34 @@ struct TimerTomatoTests {
         #expect(restored.activeFocusChecklist?.goal == "Lernen")
         #expect(restored.activeFocusChecklist?.items.first?.isCompleted == true)
         #expect(restored.activeFocusChecklist?.items.dropFirst().allSatisfy { !$0.isCompleted } == true)
+    }
+
+    @Test func activeChecklistCueShowsNextOpenStep() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Lernen"
+        store.start()
+
+        #expect(store.activeChecklistCue?.title == "Buch öffnen")
+        #expect(store.activeChecklistCue?.timeText == "Jetzt")
+        #expect(store.activeChecklistCue?.isDue == true)
+
+        if let firstItemID = store.activeFocusChecklist?.items.first?.id {
+            store.setChecklistItemCompleted(firstItemID, isCompleted: true)
+        }
+
+        #expect(store.activeChecklistCue?.title == "Inhalt lesen")
+        #expect(store.activeChecklistCue?.timeText == "In 1 min")
+        #expect(store.activeChecklistCue?.isDue == false)
+
+        now = date(hour: 9, minute: 1)
+        store.tick()
+
+        #expect(store.activeChecklistCue?.title == "Inhalt lesen")
+        #expect(store.activeChecklistCue?.timeText == "Jetzt")
+        #expect(store.activeChecklistCue?.isDue == true)
     }
 
     @Test func activeFocusIntentChangeTracksNetFocusSegments() async {

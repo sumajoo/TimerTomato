@@ -9,6 +9,7 @@ import SwiftUI
 
 struct FocusOutcomePromptView: View {
     @State private var isShowingBlockerFollowUp = false
+    @State private var isShowingBlockerReasons = false
     @State private var blockerReason: PomodoroBlockerReason?
     @State private var blockerNextStep = ""
 
@@ -80,16 +81,13 @@ struct FocusOutcomePromptView: View {
 
     private var blockerFollowUp: some View {
         VStack(spacing: 7) {
-            reasonRow(firstReasonRow)
-            reasonRow(secondReasonRow)
-
             HStack(spacing: 6) {
                 Image(systemName: "arrow.turn.down.right")
                     .font(.caption)
                     .foregroundStyle(TimerTomatoDesign.tomato)
                     .accessibilityHidden(true)
 
-                TextField("Nächster Schritt", text: $blockerNextStep)
+                TextField("Kleinster nächster Schritt", text: $blockerNextStep)
                     .textFieldStyle(.plain)
                     .font(.caption)
                     .lineLimit(1)
@@ -101,6 +99,26 @@ struct FocusOutcomePromptView: View {
                     .fill(TimerTomatoDesign.surfaceFill)
             }
             .glassEffect(.regular.interactive(), in: .capsule)
+
+            if isShowingBlockerReasons {
+                reasonRow(firstReasonRow)
+                reasonRow(secondReasonRow)
+            } else {
+                Button("Grund hinzufügen", systemImage: "tag") {
+                    isShowingBlockerReasons = true
+                }
+                .font(.caption.bold())
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
+                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.compactHitTarget)
+                .background {
+                    Capsule()
+                        .fill(TimerTomatoDesign.surfaceFill)
+                }
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .buttonStyle(.plain)
+                .help("Optionalen Blockade-Grund auswählen")
+            }
 
             HStack(spacing: 7) {
                 Button("Überspringen") {
@@ -184,6 +202,7 @@ struct FocusOutcomePromptView: View {
 
     private func resetBlockerFollowUp() {
         isShowingBlockerFollowUp = false
+        isShowingBlockerReasons = false
         blockerReason = nil
         blockerNextStep = ""
     }

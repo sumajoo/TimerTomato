@@ -291,6 +291,22 @@ final class PomodoroStore {
         activeFocusChecklist?.goal
     }
 
+    var activeChecklistCue: PomodoroChecklistCue? {
+        guard
+            status != .idle,
+            activeTimerKind == .focus,
+            let checklist = activeFocusChecklist,
+            let item = checklist.items.first(where: { !$0.isCompleted && !$0.title.isEmpty })
+        else {
+            return nil
+        }
+
+        return PomodoroChecklistCue(
+            item: item,
+            elapsedSeconds: activeElapsedFocusSeconds()
+        )
+    }
+
     var pendingOutcomeSession: PomodoroSession? {
         guard let pendingOutcomeSessionID else {
             return nil
@@ -588,6 +604,23 @@ final class PomodoroStore {
 
         if var activeChecklist = activeFocusChecklist, activeChecklist.goal == normalizedGoal {
             updateChecklistItem(itemID, reminderMinuteOffset: reminderMinuteOffset, in: &activeChecklist)
+            activeFocusChecklist = activeChecklist
+            persistSnapshot()
+            rescheduleActiveChecklistReminders()
+        }
+    }
+
+    func setChecklistReminderMode(_ reminderMode: PomodoroChecklistReminderMode, for goal: String) {
+        guard let normalizedGoal = PomodoroSession.normalizedIntent(goal) else {
+            return
+        }
+
+        var template = checklistTemplate(for: normalizedGoal)
+        template.reminderMode = reminderMode
+        saveChecklistTemplate(template)
+
+        if var activeChecklist = activeFocusChecklist, activeChecklist.goal == normalizedGoal {
+            activeChecklist.reminderMode = reminderMode
             activeFocusChecklist = activeChecklist
             persistSnapshot()
             rescheduleActiveChecklistReminders()
@@ -1245,6 +1278,12 @@ final class PomodoroStore {
 
         let elapsedSeconds = activeElapsedFocusSeconds()
         let plannedSeconds = TimeInterval((activePlannedMinutes ?? selectedMinutes) * 60)
+        let playsSound = checklist.reminderMode == .normal
+
+        guard checklist.reminderMode != .off else {
+            return
+        }
+
         let reminders = checklist.items.compactMap { item -> PomodoroChecklistReminder? in
             guard !item.isCompleted, !item.title.isEmpty else {
                 return nil
@@ -1258,7 +1297,8 @@ final class PomodoroStore {
             return PomodoroChecklistReminder(
                 identifier: checklistReminderIdentifier(for: item.id),
                 title: item.title,
-                delaySeconds: reminderSeconds - elapsedSeconds
+                delaySeconds: reminderSeconds - elapsedSeconds,
+                playsSound: playsSound
             )
         }
 

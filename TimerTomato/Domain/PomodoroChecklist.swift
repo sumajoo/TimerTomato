@@ -7,6 +7,43 @@
 
 import Foundation
 
+enum PomodoroChecklistReminderMode: String, Codable, CaseIterable, Identifiable {
+    case off
+    case quiet
+    case normal
+
+    nonisolated var id: String {
+        rawValue
+    }
+
+    nonisolated var title: String {
+        switch self {
+        case .off:
+            "Aus"
+        case .quiet:
+            "Leise"
+        case .normal:
+            "Normal"
+        }
+    }
+}
+
+struct PomodoroChecklistCue: Equatable {
+    let title: String
+    let timeText: String
+    let isDue: Bool
+
+    nonisolated init(item: PomodoroChecklistItem, elapsedSeconds: TimeInterval) {
+        let reminderSeconds = TimeInterval(item.reminderMinuteOffset * 60)
+        let secondsUntilReminder = reminderSeconds - elapsedSeconds
+        let minutesUntilReminder = Int(ceil(max(secondsUntilReminder, 0) / 60))
+
+        title = item.title
+        isDue = secondsUntilReminder <= 0
+        timeText = isDue ? "Jetzt" : "In \(max(minutesUntilReminder, 1)) min"
+    }
+}
+
 struct PomodoroChecklistItem: Identifiable, Codable, Equatable {
     nonisolated static let maximumTitleCharacters = 120
     nonisolated static let maximumReminderMinuteOffset = 90
@@ -105,14 +142,20 @@ struct PomodoroChecklist: Codable, Equatable {
     ]
 
     let goal: String
+    var reminderMode: PomodoroChecklistReminderMode
     var items: [PomodoroChecklistItem]
 
     nonisolated var isEmpty: Bool {
         items.isEmpty
     }
 
-    nonisolated init(goal: String, items: [PomodoroChecklistItem] = []) {
+    nonisolated init(
+        goal: String,
+        items: [PomodoroChecklistItem] = [],
+        reminderMode: PomodoroChecklistReminderMode = .normal
+    ) {
         self.goal = PomodoroSession.normalizedIntent(goal) ?? ""
+        self.reminderMode = reminderMode
         self.items = Array(items.prefix(Self.maximumItems)).map { item in
             PomodoroChecklistItem(
                 id: item.id,
@@ -127,6 +170,7 @@ struct PomodoroChecklist: Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         goal = PomodoroSession.normalizedIntent(try container.decode(String.self, forKey: .goal)) ?? ""
+        reminderMode = try container.decodeIfPresent(PomodoroChecklistReminderMode.self, forKey: .reminderMode) ?? .normal
         items = Array(
             try container.decodeIfPresent([PomodoroChecklistItem].self, forKey: .items) ?? []
         )
@@ -150,7 +194,8 @@ struct PomodoroChecklist: Codable, Equatable {
                     title: item.title,
                     reminderMinuteOffset: item.reminderMinuteOffset
                 )
-            }
+            },
+            reminderMode: reminderMode
         )
     }
 
@@ -167,12 +212,14 @@ struct PomodoroChecklist: Codable, Equatable {
 
         return PomodoroChecklist(
             goal: normalizedGoal,
-            items: learningDefaultItems
+            items: learningDefaultItems,
+            reminderMode: .normal
         )
     }
 
     private enum CodingKeys: String, CodingKey {
         case goal
+        case reminderMode
         case items
     }
 }

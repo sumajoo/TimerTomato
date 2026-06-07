@@ -28,10 +28,12 @@ struct PomodoroChecklistReminder: Equatable {
     let identifier: String
     let title: String
     let delaySeconds: TimeInterval
+    let playsSound: Bool
 
-    init(identifier: String, title: String, delaySeconds: TimeInterval) {
+    init(identifier: String, title: String, delaySeconds: TimeInterval, playsSound: Bool = true) {
         self.identifier = identifier
         self.title = PomodoroChecklistItem.normalizedTitle(title)
         self.delaySeconds = max(1, delaySeconds)
+        self.playsSound = playsSound
     }
 }

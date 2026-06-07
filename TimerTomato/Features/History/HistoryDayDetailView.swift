@@ -91,10 +91,14 @@ struct HistoryDayDetailView: View {
 
                     Spacer()
 
-                    Text(day.goalCountText)
-                        .font(.footnote.monospacedDigit())
-                        .bold()
-                        .foregroundStyle(day.didReachGoal ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text(day.goalCountText)
+                            .font(.footnote.monospacedDigit())
+                            .bold()
+                            .foregroundStyle(day.didReachGoal ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+
+                        dailyGoalControl
+                    }
                 }
 
                 if day.sessions.isEmpty {
@@ -113,6 +117,36 @@ struct HistoryDayDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .timerTomatoCard(.panel)
         }
+    }
+
+    private var dailyGoalControl: some View {
+        HStack(spacing: 0) {
+            StepperIconButton(
+                title: "Tagesziel senken",
+                systemImage: "minus",
+                isDisabled: store.dailyGoalSessions <= PomodoroStore.minimumDailyGoalSessions,
+                action: store.decreaseDailyGoalSessions
+            )
+
+            Text("\(store.dailyGoalSessions)")
+                .font(.caption.monospacedDigit())
+                .bold()
+                .frame(minWidth: 18)
+
+            StepperIconButton(
+                title: "Tagesziel erhöhen",
+                systemImage: "plus",
+                isDisabled: store.dailyGoalSessions >= PomodoroStore.maximumDailyGoalSessions,
+                action: store.increaseDailyGoalSessions
+            )
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 3)
+        .background {
+            Capsule()
+                .fill(TimerTomatoDesign.surfaceFill)
+        }
+        .glassEffect(.regular.interactive(), in: .capsule)
     }
 
     private var metricRow: some View {

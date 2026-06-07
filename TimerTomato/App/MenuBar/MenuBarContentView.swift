@@ -25,6 +25,10 @@ struct MenuBarContentView: View {
         }
     }
 
+    private var showsIdleSupport: Bool {
+        store.status == .idle && !store.hasPendingOutcome
+    }
+
     private var mainView: some View {
         VStack(spacing: 0) {
             MenuBarHeaderView(store: store, showHistory: showHistory)
@@ -32,11 +36,13 @@ struct MenuBarContentView: View {
             TimerStatusView(store: store)
                 .padding(.top, 14)
 
-            DurationControlView(store: store)
-                .padding(.top, 12)
+            if showsIdleSupport {
+                DurationControlView(store: store)
+                    .padding(.top, 10)
 
-            SessionListView(store: store)
-                .padding(.top, 18)
+                SessionListView(store: store)
+                    .padding(.top, 14)
+            }
         }
     }
 
