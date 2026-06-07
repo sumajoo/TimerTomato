@@ -33,11 +33,25 @@ struct TimerTomatoTests {
         #expect(restored.selectedMinutes == 5)
     }
 
+    @Test func durationStepSelectionPersists() async {
+        let defaults = makeDefaults()
+        let store = makeStore(defaults: defaults)
+
+        store.decreaseSelectedMinutes()
+        store.decreaseSelectedMinutes()
+        store.decreaseSelectedMinutes()
+
+        #expect(store.selectedMinutes == 10)
+
+        let restored = makeStore(defaults: defaults)
+        #expect(restored.selectedMinutes == 10)
+    }
+
     @Test func durationPresetSelectionPersists() async {
         let defaults = makeDefaults()
         let store = makeStore(defaults: defaults)
 
-        store.selectPreset(minutes: 10)
+        store.selectDurationPreset(minutes: 10)
 
         #expect(store.selectedMinutes == 10)
 

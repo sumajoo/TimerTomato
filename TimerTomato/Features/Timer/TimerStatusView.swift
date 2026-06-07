@@ -20,15 +20,8 @@ struct TimerStatusView: View {
         store.focusHeatIntensity
     }
 
-    private var statusText: String {
-        switch store.status {
-        case .idle:
-            store.canStartBreak ? "Bereit für Fokus oder Pause" : "Bereit für Fokus"
-        case .running:
-            store.activeTimerKind == .breakTime ? "Pause läuft" : "Im Fokus"
-        case .paused:
-            store.activeTimerKind == .breakTime ? "Pause pausiert" : "Fokus pausiert"
-        }
+    private var canAdjustIdleDuration: Bool {
+        store.status == .idle && !store.hasPendingOutcome
     }
 
     var body: some View {
@@ -55,16 +48,12 @@ struct TimerStatusView: View {
     }
 
     private var statusHeader: some View {
-        VStack(spacing: 4) {
-            Text(store.remainingClockText)
-                .font(.system(.largeTitle, design: .rounded).monospacedDigit())
-                .bold()
-                .contentTransition(.numericText())
-                .accessibilityLabel("Verbleibende Zeit \(store.remainingClockText)")
+        VStack(spacing: 6) {
+            timerDurationHeader
 
-            Text(statusText)
-                .font(.callout)
-                .foregroundStyle(TimerTomatoDesign.secondaryText)
+            if canAdjustIdleDuration {
+                DurationPresetPickerView(store: store)
+            }
 
             if let notificationWarningText = store.notificationWarningText {
                 Label(notificationWarningText, systemImage: "bell.slash")
@@ -81,6 +70,40 @@ struct TimerStatusView: View {
                 activeChecklistCueView(activeChecklistCue)
             }
         }
+    }
+
+    @ViewBuilder
+    private var timerDurationHeader: some View {
+        if canAdjustIdleDuration {
+            HStack(spacing: 8) {
+                StepperIconButton(
+                    title: "Fokusdauer verkürzen",
+                    systemImage: "minus",
+                    isDisabled: store.selectedMinutes <= PomodoroStore.minimumMinutes,
+                    action: store.decreaseSelectedMinutes
+                )
+
+                timerText
+                    .frame(minWidth: 104)
+
+                StepperIconButton(
+                    title: "Fokusdauer verlängern",
+                    systemImage: "plus",
+                    isDisabled: store.selectedMinutes >= PomodoroStore.maximumMinutes,
+                    action: store.increaseSelectedMinutes
+                )
+            }
+        } else {
+            timerText
+        }
+    }
+
+    private var timerText: some View {
+        Text(store.remainingClockText)
+            .font(.system(.largeTitle, design: .rounded).monospacedDigit())
+            .bold()
+            .contentTransition(.numericText())
+            .accessibilityLabel("Verbleibende Zeit \(store.remainingClockText)")
     }
 
     @ViewBuilder

@@ -514,7 +514,7 @@ final class PomodoroStore {
         selectedMinutes += Self.minuteStep
     }
 
-    func selectPreset(minutes: Int) {
+    func selectDurationPreset(minutes: Int) {
         selectedMinutes = minutes
     }
 

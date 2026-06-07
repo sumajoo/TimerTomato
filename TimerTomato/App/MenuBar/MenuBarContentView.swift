@@ -37,9 +37,6 @@ struct MenuBarContentView: View {
                 .padding(.top, 14)
 
             if showsIdleSupport {
-                DurationControlView(store: store)
-                    .padding(.top, 10)
-
                 SessionListView(store: store)
                     .padding(.top, 14)
             }

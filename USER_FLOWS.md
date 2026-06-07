@@ -8,7 +8,7 @@
 
 The app has two menu bar screens:
 
-- `MenuBarScreen.main`: header, timer hero, duration controls, and today's sessions.
+- `MenuBarScreen.main`: header, timer hero with duration buttons and presets, and today's sessions.
 - `MenuBarScreen.history`: weekly navigation, weekly quest summary, and selected-day detail.
 
 The calendar button in `MenuBarHeaderView` opens History and seeds `selectedHistoryDate` with `store.currentDate`. The History back button returns to the main screen. Keep this navigation shallow and explicit.
@@ -31,13 +31,12 @@ Checklist templates are local and goal-specific. `Lernen` defaults to `Buch öff
 ## Main Focus Flow
 
 1. User starts from `idle`.
-2. User can choose a duration with the stepper or presets.
+2. User can choose a duration with the plus/minus buttons beside the timer or the preset chips below it.
 3. User can choose a focus intent from suggestions or type a custom intent.
 4. `store.start()` starts a focus timer only when `canStartFocus` is true.
 5. The pending intent becomes the active focus intent, then the pending field is cleared.
 6. While focus is running, the user can pause, reset, or change the active focus intent.
-7. If duration changes during an active session, it applies to the next session.
-8. When the focus timer completes, a session is persisted and the app enters pending outcome.
+7. When the focus timer completes, a session is persisted and the app enters pending outcome.
 
 ## Active Timer Flow
 

@@ -6,7 +6,7 @@ It is designed around small, realistic focus wins: set a lightweight intent, run
 ## Highlights
 
 - Menu bar first Pomodoro timer for macOS
-- Custom focus durations and quick duration presets
+- Custom focus durations with timer-header buttons and presets
 - Optional session intent before starting a focus block
 - Per-goal focus checklist window with editable local templates and Normal/Quiet/Off reminders
 - Focus Wins outcome flow: completed, progressed, or blocked
