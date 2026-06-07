@@ -13,6 +13,7 @@ struct FocusIntentView: View {
     @Bindable var store: PomodoroStore
 
     private let chipLayoutHeight: CGFloat = 24
+    private let chipRowSpacing: CGFloat = 6
     private let customChipMinimumWidth: CGFloat = 112
     private let customChipMaximumWidth: CGFloat = 218
     private let customChipTextHorizontalBuffer: CGFloat = 48
@@ -53,7 +54,7 @@ struct FocusIntentView: View {
     }
 
     var body: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: chipRowSpacing) {
             HStack(spacing: 4) {
                 ForEach(Array(PomodoroStore.focusIntentSuggestions.prefix(3)), id: \.self) { suggestion in
                     intentChip(suggestion)
