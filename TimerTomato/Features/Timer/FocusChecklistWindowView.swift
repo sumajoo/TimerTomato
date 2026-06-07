@@ -89,13 +89,16 @@ struct FocusChecklistWindowView: View {
             }
 
             if isEditing {
-                Button("Schritt hinzufügen", systemImage: "plus") {
+                Button {
                     store.addChecklistItem(to: checklist.goal)
+                } label: {
+                    Label("Schritt hinzufügen", systemImage: "plus")
+                        .font(.caption.bold())
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(TimerTomatoDesign.mint)
+                        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Capsule())
                 }
-                .font(.caption.bold())
-                .labelStyle(.titleAndIcon)
-                .foregroundStyle(TimerTomatoDesign.mint)
-                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -146,6 +149,7 @@ struct FocusChecklistWindowView: View {
                     .font(.title3)
                     .foregroundStyle(item.isCompleted ? TimerTomatoDesign.mint : TimerTomatoDesign.tertiaryText)
                     .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .help(item.isCompleted ? "Als offen markieren" : "Als erledigt markieren")
@@ -187,6 +191,7 @@ struct FocusChecklistWindowView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(TimerTomatoDesign.tertiaryText)
                 .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
+                .contentShape(Circle())
                 .help("Schritt löschen")
             }
         }

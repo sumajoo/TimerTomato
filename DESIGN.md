@@ -49,6 +49,7 @@ TimerTomato should feel like a calm macOS menu bar tool for small, realistic foc
 - Secondary actions can be icon-only when the symbol is standard and a `.help(...)` tooltip is present.
 - Use `TimerTomatoDesign.minimumHitTarget` (`44`) for normal controls.
 - Use `TimerTomatoDesign.compactHitTarget` (`34`) only for dense inline controls.
+- For custom plain buttons with a visible capsule or circle surface, make the full visible surface the hit target with `contentShape`.
 - Keep destructive or reset-style controls visually secondary unless the current state makes them the primary next action.
 - Keep the focus checklist window compact, editable, and quieter than the countdown.
 - Show checklist reminder times as quiet supporting text; retiming controls belong in edit mode.

@@ -42,12 +42,14 @@ struct HistoryHeaderView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
                         .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Circle())
                         .help("Vorherige Woche")
 
                     Button("Nächste Woche", systemImage: "chevron.right", action: nextWeek)
                         .labelStyle(.iconOnly)
                         .buttonStyle(.glass)
                         .frame(width: TimerTomatoDesign.minimumHitTarget, height: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Circle())
                         .help("Nächste Woche")
                 }
             }

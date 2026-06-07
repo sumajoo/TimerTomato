@@ -40,7 +40,7 @@ struct ActiveFocusTopicView: View {
                 Image(systemName: "target")
                     .accessibilityHidden(true)
 
-                Text("Jetzt: \(store.activeFocusTopicText)")
+                Text(store.activeFocusTopicText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
 
@@ -60,9 +60,11 @@ struct ActiveFocusTopicView: View {
                             .strokeBorder(TimerTomatoDesign.mint.opacity(0.20), lineWidth: 0.7)
                     }
             }
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .timerTomatoHitTarget(minHeight: TimerTomatoDesign.compactHitTarget)
+        .contentShape(Capsule())
         .help("Fokus-Thema ändern")
     }
 
@@ -102,6 +104,7 @@ struct ActiveFocusTopicView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(TimerTomatoDesign.mint)
                 .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
+                .contentShape(Circle())
                 .help("Thema übernehmen")
 
                 Button("Abbrechen", systemImage: "xmark") {
@@ -111,6 +114,7 @@ struct ActiveFocusTopicView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(TimerTomatoDesign.tertiaryText)
                 .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
+                .contentShape(Circle())
                 .help("Abbrechen")
             }
             .padding(.horizontal, 8)
@@ -130,25 +134,27 @@ struct ActiveFocusTopicView: View {
     private func topicChip(_ suggestion: String) -> some View {
         let isSelected = store.activeFocusIntentText == suggestion
 
-        return Button(suggestion) {
+        return Button {
             applyTopic(suggestion)
-        }
-        .font(.caption2)
-        .fontWeight(isSelected ? .semibold : .medium)
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-        .foregroundStyle(isSelected ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
-        .frame(height: 24)
-        .padding(.horizontal, 10)
-        .background {
-            Capsule()
-                .fill(TimerTomatoDesign.surfaceFill)
-                .overlay {
+        } label: {
+            Text(suggestion)
+                .font(.caption2)
+                .fontWeight(isSelected ? .semibold : .medium)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(isSelected ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                .padding(.horizontal, 10)
+                .frame(minWidth: 64, minHeight: 26)
+                .background {
                     Capsule()
-                        .strokeBorder(TimerTomatoDesign.mint.opacity(isSelected ? 0.42 : 0.16), lineWidth: isSelected ? 0.9 : 0.7)
+                        .fill(TimerTomatoDesign.surfaceFill)
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(TimerTomatoDesign.mint.opacity(isSelected ? 0.42 : 0.16), lineWidth: isSelected ? 0.9 : 0.7)
+                        }
                 }
+                .contentShape(Capsule())
         }
-        .timerTomatoHitTarget(minWidth: 64, minHeight: 26)
         .buttonStyle(.plain)
         .help("Zu \(suggestion) wechseln")
     }

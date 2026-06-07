@@ -97,14 +97,10 @@ Rules:
 
 ## Today Surface
 
-The Today section shows current-day progress:
+The main screen keeps today's goal progress visible near the timer context.
+The Today section below it is only the recent-session list, newest first.
 
-- compact focus wins and minutes
-- daily goal progress
-- topic summary
-- recent sessions, newest first
-
-Today should stay scannable and read-only on the main surface. Goal editing and richer topic detail belong in History.
+Goal editing and richer topic detail belong in History.
 
 ## History Flow
 

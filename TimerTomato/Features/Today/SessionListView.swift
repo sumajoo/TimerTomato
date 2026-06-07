@@ -11,6 +11,7 @@ struct SessionListView: View {
     let store: PomodoroStore
 
     private let todayContentMaxHeight: CGFloat = 166
+    private let scrollTopInset: CGFloat = 6
     private let scrollBottomInset: CGFloat = 34
     private let scrollFadeHeight: CGFloat = 18
 
@@ -20,6 +21,43 @@ struct SessionListView: View {
 
     private var orderedSessions: [PomodoroSession] {
         Array(sessions.reversed())
+    }
+
+    private var hasReachedDailyGoal: Bool {
+        store.dailyGoalProgress >= 1
+    }
+
+    private var todayGoalHeaderText: String {
+        hasReachedDailyGoal ? "Tagesziel erreicht" : "Tagesziel \(store.dailyGoalCountText)"
+    }
+
+    private var todayGoalHeaderSystemImage: String {
+        hasReachedDailyGoal ? "checkmark.circle.fill" : "target"
+    }
+
+    private var todayGoalHeaderTint: Color {
+        hasReachedDailyGoal ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText
+    }
+
+    private var todayHeader: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Label("Heute", systemImage: "calendar")
+                .font(.callout)
+                .bold()
+                .foregroundStyle(TimerTomatoDesign.secondaryText)
+                .imageScale(.small)
+
+            Spacer(minLength: 8)
+
+            Label(todayGoalHeaderText, systemImage: todayGoalHeaderSystemImage)
+                .font(.caption)
+                .bold()
+                .foregroundStyle(todayGoalHeaderTint)
+                .imageScale(.small)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .padding(.horizontal, 4)
     }
 
     private var scrollFadeMask: some View {
@@ -38,24 +76,15 @@ struct SessionListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Heute", systemImage: "calendar")
-                .font(.callout)
-                .bold()
-                .foregroundStyle(TimerTomatoDesign.secondaryText)
-                .imageScale(.small)
-                .padding(.horizontal, 4)
+            todayHeader
 
             if sessions.isEmpty {
-                TodayStatsView(store: store)
-
                 GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
                     SessionEmptyStateView()
                 }
             } else {
-                ScrollView(.vertical) {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 12) {
-                        TodayStatsView(store: store)
-
                         GlassEffectContainer(spacing: 12) {
                             VStack(spacing: 12) {
                                 ForEach(orderedSessions) { session in
@@ -65,9 +94,9 @@ struct SessionListView: View {
                         }
                     }
                     .padding(.horizontal, 2)
+                    .padding(.top, scrollTopInset)
+                    .padding(.bottom, scrollBottomInset)
                 }
-                .contentMargins(.bottom, scrollBottomInset, for: .scrollContent)
-                .scrollIndicators(.hidden)
                 .frame(height: todayContentMaxHeight)
                 .mask {
                     scrollFadeMask

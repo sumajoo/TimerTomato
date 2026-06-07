@@ -74,19 +74,21 @@ struct FocusIntentView: View {
     private func intentChip(_ suggestion: String) -> some View {
         let isSelected = normalizedIntent == suggestion && !isCustomIntentActive
 
-        return Button(suggestion) {
+        return Button {
             store.selectFocusIntentSuggestion(suggestion)
             isIntentFieldFocused = false
+        } label: {
+            Text(suggestion)
+                .font(.caption2)
+                .fontWeight(isSelected ? .semibold : .medium)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(isSelected ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                .padding(.horizontal, 10)
+                .frame(minWidth: 64, minHeight: chipLayoutHeight)
+                .background { intentChipBackground(isActive: isSelected) }
+                .contentShape(Capsule())
         }
-        .font(.caption2)
-        .fontWeight(isSelected ? .semibold : .medium)
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
-        .foregroundStyle(isSelected ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
-        .frame(height: 24)
-        .padding(.horizontal, 10)
-        .background { intentChipBackground(isActive: isSelected) }
-        .timerTomatoHitTarget(minWidth: 64, minHeight: chipLayoutHeight)
         .buttonStyle(.plain)
         .help("Fokus-Ziel \(suggestion)")
     }

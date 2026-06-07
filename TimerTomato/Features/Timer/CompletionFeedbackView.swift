@@ -61,25 +61,28 @@ struct CompletionFeedbackView: View {
             }
 
             if feedback.offersRescueAction && canStartRescue {
-                Button("10-min Reset", systemImage: "bolt.fill", action: startRescue)
-                    .font(.caption2.bold())
-                    .labelStyle(.titleAndIcon)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-                    .foregroundStyle(TimerTomatoDesign.mint)
-                    .padding(.horizontal, 8)
-                    .frame(minHeight: TimerTomatoDesign.minimumHitTarget)
-                    .background {
-                        Capsule()
-                            .fill(TimerTomatoDesign.surfaceFill)
-                            .overlay {
-                                Capsule()
-                                    .fill(TimerTomatoDesign.mint.opacity(0.10))
-                            }
-                    }
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .buttonStyle(.plain)
-                    .help("10 Minuten Reset starten")
+                Button(action: startRescue) {
+                    Label("10-min Reset", systemImage: "bolt.fill")
+                        .font(.caption2.bold())
+                        .labelStyle(.titleAndIcon)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .foregroundStyle(TimerTomatoDesign.mint)
+                        .padding(.horizontal, 8)
+                        .frame(minHeight: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Capsule())
+                }
+                .background {
+                    Capsule()
+                        .fill(TimerTomatoDesign.surfaceFill)
+                        .overlay {
+                            Capsule()
+                                .fill(TimerTomatoDesign.mint.opacity(0.10))
+                        }
+                }
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .buttonStyle(.plain)
+                .help("10 Minuten Reset starten")
             }
         }
         .padding(.horizontal, 10)
@@ -98,16 +101,19 @@ struct CompletionFeedbackView: View {
     private func continueButton(intent: String) -> some View {
         let topicTitle = PomodoroFormatters.topicTitle(intent)
 
-        return Button("Weiter mit \(topicTitle)", systemImage: "arrow.up.right") {
+        return Button {
             continueFocus(intent)
+        } label: {
+            Label("Weiter mit \(topicTitle)", systemImage: "arrow.up.right")
+                .font(.caption2.bold())
+                .labelStyle(.titleAndIcon)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .foregroundStyle(TimerTomatoDesign.mint)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: 136, minHeight: TimerTomatoDesign.minimumHitTarget)
+                .contentShape(Capsule())
         }
-        .font(.caption2.bold())
-        .labelStyle(.titleAndIcon)
-        .lineLimit(1)
-        .minimumScaleFactor(0.72)
-        .foregroundStyle(TimerTomatoDesign.mint)
-        .padding(.horizontal, 8)
-        .frame(maxWidth: 136, minHeight: TimerTomatoDesign.minimumHitTarget)
         .background {
             Capsule()
                 .fill(TimerTomatoDesign.surfaceFill)

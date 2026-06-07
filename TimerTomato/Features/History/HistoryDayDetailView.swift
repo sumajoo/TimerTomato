@@ -19,12 +19,13 @@ struct HistoryDayDetailView: View {
         )
     }
 
-    private var summaryText: String {
-        PomodoroFormatters.focusWinsSummaryText(
-            focusWins: day.focusWinCount,
-            focusMinutes: day.focusMinutes,
-            averagePauseSeconds: nil
-        )
+    private var dailyGoalSummaryText: String {
+        let unit = store.dailyGoalSessions == 1 ? "Session" : "Sessions"
+        return "Tagesziel: \(day.goalCountText) \(unit)"
+    }
+
+    private var dailyFocusStatusText: String {
+        day.sessions.isEmpty ? "Keine Sessions" : "\(day.focusMinutes) \(minuteUnitText)"
     }
 
     private var focusRoundUnitText: String {
@@ -78,27 +79,28 @@ struct HistoryDayDetailView: View {
     var body: some View {
         GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(store.dayTitle(for: selectedDate))
                             .font(.callout)
                             .bold()
 
-                        Text(day.sessions.isEmpty ? "Keine Sessions" : summaryText)
+                        Text(dailyGoalSummaryText)
                             .font(.footnote)
                             .foregroundStyle(TimerTomatoDesign.secondaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+
+                        Text(dailyFocusStatusText)
+                            .font(.footnote)
+                            .foregroundStyle(TimerTomatoDesign.secondaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 10)
 
-                    VStack(alignment: .trailing, spacing: 6) {
-                        Text(day.goalCountText)
-                            .font(.footnote.monospacedDigit())
-                            .bold()
-                            .foregroundStyle(day.didReachGoal ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
-
-                        dailyGoalControl
-                    }
+                    dailyGoalControl
                 }
 
                 if day.sessions.isEmpty {
@@ -129,9 +131,9 @@ struct HistoryDayDetailView: View {
             )
 
             Text("\(store.dailyGoalSessions)")
-                .font(.caption.monospacedDigit())
+                .font(.footnote.monospacedDigit())
                 .bold()
-                .frame(minWidth: 18)
+                .frame(minWidth: 22)
 
             StepperIconButton(
                 title: "Tagesziel erhöhen",

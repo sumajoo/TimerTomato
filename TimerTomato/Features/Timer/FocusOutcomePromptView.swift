@@ -55,15 +55,18 @@ struct FocusOutcomePromptView: View {
     private var outcomeButtons: some View {
         HStack(spacing: 6) {
             ForEach(PomodoroSessionOutcome.allCases, id: \.self) { outcome in
-                Button(outcome.title, systemImage: outcome.systemImage) {
+                Button {
                     select(outcome)
+                } label: {
+                    Label(outcome.title, systemImage: outcome.systemImage)
+                        .font(.caption.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(tint(for: outcome))
+                        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Capsule())
                 }
-                .font(.caption.bold())
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .labelStyle(.titleAndIcon)
-                .foregroundStyle(tint(for: outcome))
-                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -104,13 +107,16 @@ struct FocusOutcomePromptView: View {
                 reasonRow(firstReasonRow)
                 reasonRow(secondReasonRow)
             } else {
-                Button("Grund hinzufügen", systemImage: "tag") {
+                Button {
                     isShowingBlockerReasons = true
+                } label: {
+                    Label("Grund hinzufügen", systemImage: "tag")
+                        .font(.caption.bold())
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.compactHitTarget)
+                        .contentShape(Capsule())
                 }
-                .font(.caption.bold())
-                .labelStyle(.titleAndIcon)
-                .foregroundStyle(TimerTomatoDesign.secondaryText)
-                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.compactHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -121,12 +127,15 @@ struct FocusOutcomePromptView: View {
             }
 
             HStack(spacing: 7) {
-                Button("Überspringen") {
+                Button {
                     complete(.blocked, nil, nil)
+                } label: {
+                    Text("Überspringen")
+                        .font(.caption.bold())
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Capsule())
                 }
-                .font(.caption.bold())
-                .foregroundStyle(TimerTomatoDesign.secondaryText)
-                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -135,13 +144,16 @@ struct FocusOutcomePromptView: View {
                 .buttonStyle(.plain)
                 .help("Blockade ohne Details speichern")
 
-                Button("Speichern", systemImage: "checkmark") {
+                Button {
                     complete(.blocked, blockerReason, blockerNextStep)
+                } label: {
+                    Label("Speichern", systemImage: "checkmark")
+                        .font(.caption.bold())
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(TimerTomatoDesign.mint)
+                        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
+                        .contentShape(Capsule())
                 }
-                .font(.caption.bold())
-                .labelStyle(.titleAndIcon)
-                .foregroundStyle(TimerTomatoDesign.mint)
-                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
                 .background {
                     Capsule()
                         .fill(TimerTomatoDesign.surfaceFill)
@@ -168,15 +180,18 @@ struct FocusOutcomePromptView: View {
     private func reasonButton(_ reason: PomodoroBlockerReason) -> some View {
         let isSelected = blockerReason == reason
 
-        return Button(reason.shortTitle, systemImage: reason.systemImage) {
+        return Button {
             blockerReason = isSelected ? nil : reason
+        } label: {
+            Label(reason.shortTitle, systemImage: reason.systemImage)
+                .font(.caption2.bold())
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(isSelected ? TimerTomatoDesign.tomato : TimerTomatoDesign.secondaryText)
+                .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
+                .contentShape(Capsule())
         }
-        .font(.caption2.bold())
-        .lineLimit(1)
-        .minimumScaleFactor(0.74)
-        .labelStyle(.titleAndIcon)
-        .foregroundStyle(isSelected ? TimerTomatoDesign.tomato : TimerTomatoDesign.secondaryText)
-        .frame(maxWidth: .infinity, minHeight: TimerTomatoDesign.minimumHitTarget)
         .background {
             Capsule()
                 .fill(TimerTomatoDesign.surfaceFill)

@@ -63,21 +63,20 @@ struct HistoryWeekSummaryView: View {
                 }
 
                 if shouldShowSuggestion {
-                    Button(
-                        "Quest-Vorschlag \(store.weeklyGoalSuggestionSessions) übernehmen",
-                        action: store.acceptWeeklyGoalSuggestion
-                    )
-                    .font(.caption)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(TimerTomatoDesign.mint)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .timerTomatoHitTarget(minWidth: 180)
+                    Button(action: store.acceptWeeklyGoalSuggestion) {
+                        Text("Quest-Vorschlag \(store.weeklyGoalSuggestionSessions) übernehmen")
+                            .font(.caption)
+                            .foregroundStyle(TimerTomatoDesign.mint)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .timerTomatoCapsuleHitTarget(minWidth: 180)
+                    }
                     .background {
                         Capsule()
                             .fill(TimerTomatoDesign.surfaceFill)
                     }
                     .glassEffect(.regular.interactive(), in: .capsule)
+                    .buttonStyle(.plain)
                     .help("Wochen-Quest-Vorschlag übernehmen")
                 }
             }
@@ -143,10 +142,6 @@ struct HistoryWeekSummaryView: View {
         VStack(alignment: .leading, spacing: 6) {
             contextLine("Ziel-Serie: \(streakSummary.currentText)", systemImage: "flame.fill", tint: TimerTomatoDesign.mint)
             contextLine("Letzte 7 Tage: \(activeDaysText)", systemImage: "checkmark.circle.fill", tint: TimerTomatoDesign.secondaryText)
-
-            if store.isSameDay(selectedDate, store.currentDate), momentumSummary.hasActivityToday {
-                contextLine("Heute bist du drangeblieben", systemImage: "sparkles", tint: TimerTomatoDesign.mint)
-            }
         }
     }
 
@@ -170,11 +165,12 @@ struct HistoryWeekSummaryView: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, minHeight: 34)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .timerTomatoHitTarget()
+        .timerTomatoCapsuleHitTarget()
         .background {
             Capsule()
                 .fill(TimerTomatoDesign.surfaceFill)

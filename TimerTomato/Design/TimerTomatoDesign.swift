@@ -207,4 +207,12 @@ extension View {
         frame(minWidth: minWidth, minHeight: minHeight)
             .contentShape(Rectangle())
     }
+
+    func timerTomatoCapsuleHitTarget(
+        minWidth: CGFloat? = nil,
+        minHeight: CGFloat = TimerTomatoDesign.minimumHitTarget
+    ) -> some View {
+        frame(minWidth: minWidth, minHeight: minHeight)
+            .contentShape(Capsule())
+    }
 }
