@@ -24,70 +24,77 @@ struct TimerControlsView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Spacer(minLength: 0)
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 12) {
+                Spacer(minLength: 0)
 
-            switch store.status {
-            case .idle:
-                TimerControlPrimaryButton(
-                    title: "Fokus starten",
-                    systemImage: "play.fill",
-                    tint: TimerTomatoDesign.tomato,
-                    width: primaryButtonWidth,
-                    height: primaryButtonHeight,
-                    action: store.start
-                )
-                    .disabled(!store.canStartFocus)
-                    .glassEffectID("timer-primary-control", in: glassNamespace)
+                switch store.status {
+                case .idle:
+                    TimerControlPrimaryButton(
+                        title: "Fokus starten",
+                        systemImage: "play.fill",
+                        tint: TimerTomatoDesign.tomato,
+                        width: primaryButtonWidth,
+                        height: primaryButtonHeight,
+                        action: store.start
+                    )
+                        .disabled(!store.canStartFocus)
+                        .glassEffectID("timer-primary-control", in: glassNamespace)
+                        .glassEffectTransition(.matchedGeometry)
 
-                if store.canStartBreak {
+                    if store.canStartBreak {
+                        TimerControlIconButton(
+                            title: "Pause starten",
+                            systemImage: "cup.and.saucer.fill",
+                            tint: TimerTomatoDesign.mint,
+                            width: secondaryButtonWidth,
+                            height: primaryButtonHeight,
+                            action: store.startBreak
+                        )
+                            .help("5 Minuten Pause starten")
+                            .glassEffectID("timer-secondary-control", in: glassNamespace)
+                            .glassEffectTransition(.matchedGeometry)
+                    }
+                case .running:
+                    TimerControlPrimaryButton(
+                        title: "Pause",
+                        systemImage: "pause.fill",
+                        tint: accentColor,
+                        width: primaryButtonWidth,
+                        height: primaryButtonHeight,
+                        action: store.pause
+                    )
+                        .glassEffectID("timer-primary-control", in: glassNamespace)
+                        .glassEffectTransition(.matchedGeometry)
+                case .paused:
+                    TimerControlPrimaryButton(
+                        title: "Fortsetzen",
+                        systemImage: "play.fill",
+                        tint: accentColor,
+                        width: primaryButtonWidth,
+                        height: primaryButtonHeight,
+                        action: store.resume
+                    )
+                        .glassEffectID("timer-primary-control", in: glassNamespace)
+                        .glassEffectTransition(.matchedGeometry)
+                }
+
+                if store.status != .idle {
                     TimerControlIconButton(
-                        title: "Pause starten",
-                        systemImage: "cup.and.saucer.fill",
-                        tint: TimerTomatoDesign.mint,
+                        title: "Zurücksetzen",
+                        systemImage: "arrow.counterclockwise",
+                        tint: TimerTomatoDesign.secondaryText,
                         width: secondaryButtonWidth,
                         height: primaryButtonHeight,
-                        action: store.startBreak
+                        action: store.reset
                     )
-                        .help("5 Minuten Pause starten")
-                        .glassEffectID("timer-break-control", in: glassNamespace)
+                        .help("Zurücksetzen")
+                        .glassEffectID("timer-secondary-control", in: glassNamespace)
+                        .glassEffectTransition(.matchedGeometry)
                 }
-            case .running:
-                TimerControlPrimaryButton(
-                    title: "Pause",
-                    systemImage: "pause.fill",
-                    tint: accentColor,
-                    width: primaryButtonWidth,
-                    height: primaryButtonHeight,
-                    action: store.pause
-                )
-                    .glassEffectID("timer-primary-control", in: glassNamespace)
-            case .paused:
-                TimerControlPrimaryButton(
-                    title: "Fortsetzen",
-                    systemImage: "play.fill",
-                    tint: accentColor,
-                    width: primaryButtonWidth,
-                    height: primaryButtonHeight,
-                    action: store.resume
-                )
-                    .glassEffectID("timer-primary-control", in: glassNamespace)
-            }
 
-            if store.status != .idle {
-                TimerControlIconButton(
-                    title: "Zurücksetzen",
-                    systemImage: "arrow.counterclockwise",
-                    tint: TimerTomatoDesign.secondaryText,
-                    width: secondaryButtonWidth,
-                    height: primaryButtonHeight,
-                    action: store.reset
-                )
-                    .help("Zurücksetzen")
-                    .glassEffectID("timer-reset-control", in: glassNamespace)
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
         }
     }
 }
@@ -110,17 +117,10 @@ private struct TimerControlPrimaryButton: View {
                 .frame(width: width, height: height)
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.white)
-        .background {
-            Capsule()
-                .fill(tint)
-                .overlay {
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                }
-        }
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .buttonStyle(.glassProminent)
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
+        .tint(tint)
         .accessibilityLabel(title)
     }
 }
@@ -140,21 +140,10 @@ private struct TimerControlIconButton: View {
                 .frame(width: width, height: height)
                 .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(tint)
-        .background {
-            Capsule()
-                .fill(TimerTomatoDesign.surfaceFill)
-                .overlay {
-                    Capsule()
-                        .fill(tint.opacity(0.10))
-                }
-                .overlay {
-                    Capsule()
-                        .strokeBorder(tint.opacity(0.16), lineWidth: 0.8)
-                }
-        }
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
+        .tint(tint)
         .accessibilityLabel(title)
     }
 }
