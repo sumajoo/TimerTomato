@@ -26,7 +26,7 @@ Goal checklists are optional per-goal todos that appear after a focus timer star
 7. While focus runs, the main timer can show the next open checklist cue such as `Jetzt: Buch öffnen` or `In 3 min: 3 Stichpunkte machen`.
 8. User can check, edit, delete, add, retime steps, or change the reminder mode while the timer runs.
 
-Checklist templates are local and goal-specific. `Lernen` defaults to `Buch öffnen`, `Inhalt lesen`, `3 Minuten laut sagen "Worum geht es hier überhaupt"`, and `3 Stichpunkte machen` with reminders at `Jetzt`, `1 min`, `3 min`, and `6 min`. Goals without a saved template start with an empty checklist.
+Checklist templates are local and goal-specific. Built-in template goals (`Entwurf schreiben`, `Bug fixen`, `Inbox leeren`, and `Lernen`) start with four example steps and reminders at `Jetzt`, `1 min`, `10 min`, and `14 min`. Custom goals without a saved template start with an empty checklist.
 
 ## Main Focus Flow
 

@@ -210,6 +210,29 @@ struct TimerTomatoTests {
         #expect(store.activeFocusChecklist?.items.allSatisfy { !$0.isCompleted } == true)
     }
 
+    @Test func builtInChecklistTemplatesStartWithExampleLists() async {
+        let expectedTemplates = [
+            (PomodoroChecklist.draftGoal, PomodoroChecklist.draftDefaultTitles),
+            (PomodoroChecklist.bugFixGoal, PomodoroChecklist.bugFixDefaultTitles),
+            (PomodoroChecklist.inboxGoal, PomodoroChecklist.inboxDefaultTitles),
+            (PomodoroChecklist.learningGoal, PomodoroChecklist.learningDefaultTitles)
+        ]
+
+        #expect(PomodoroStore.focusIntentSuggestions == expectedTemplates.map(\.0))
+
+        for (goal, expectedTitles) in expectedTemplates {
+            let template = PomodoroChecklist.defaultTemplate(for: " \(goal) ")
+
+            #expect(template.goal == goal)
+            #expect(template.reminderMode == .normal)
+            #expect(template.items.map(\.title) == expectedTitles)
+            #expect(template.items.map(\.reminderMinuteOffset) == PomodoroChecklist.defaultReminderMinuteOffsets)
+            #expect(template.items.allSatisfy { !$0.isCompleted })
+        }
+
+        #expect(PomodoroChecklist.defaultTemplate(for: "Eigenes Thema").items.isEmpty)
+    }
+
     @Test func checklistTemplateEditsPersistByGoal() async {
         let defaults = makeDefaults()
         let modelContainer = makeModelContainer()
@@ -265,7 +288,7 @@ struct TimerTomatoTests {
         await drainNotificationTasks()
 
         #expect(notifier.scheduledChecklistReminders.map(\.title) == PomodoroChecklist.learningDefaultTitles)
-        #expect(notifier.scheduledChecklistReminders.map(\.delaySeconds) == [1, 60, 180, 360])
+        #expect(notifier.scheduledChecklistReminders.map(\.delaySeconds) == [1, 60, 600, 840])
         #expect(notifier.scheduledChecklistReminders.allSatisfy { $0.playsSound })
     }
 
@@ -321,7 +344,7 @@ struct TimerTomatoTests {
 
         let resumedReminders = Array(notifier.scheduledChecklistReminders.dropFirst(4))
         #expect(resumedReminders.map(\.title) == Array(PomodoroChecklist.learningDefaultTitles.dropFirst(2)))
-        #expect(resumedReminders.map(\.delaySeconds) == [60, 240])
+        #expect(resumedReminders.map(\.delaySeconds) == [480, 720])
         #expect(resumedReminders.allSatisfy { $0.playsSound })
     }
 

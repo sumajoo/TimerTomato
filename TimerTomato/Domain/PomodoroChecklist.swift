@@ -110,32 +110,120 @@ struct PomodoroChecklistItem: Identifiable, Codable, Equatable {
 
 struct PomodoroChecklist: Codable, Equatable {
     nonisolated static let maximumItems = 8
+    nonisolated static let draftGoal = "Entwurf schreiben"
+    nonisolated static let bugFixGoal = "Bug fixen"
+    nonisolated static let inboxGoal = "Inbox leeren"
     nonisolated static let learningGoal = "Lernen"
+    nonisolated static let defaultReminderMinuteOffsets = [0, 1, 10, 14]
+    nonisolated static let draftDefaultTitles = [
+        "Ziel in einem Satz klären",
+        "3 Stichpunkte skizzieren",
+        "Rohfassung schreiben",
+        "Offene Stellen markieren"
+    ]
+    nonisolated static let bugFixDefaultTitles = [
+        "Fehler reproduzieren",
+        "Verdächtige Stelle öffnen",
+        "Kleinsten Fix testen",
+        "Randfall kurz prüfen"
+    ]
+    nonisolated static let inboxDefaultTitles = [
+        "Inbox öffnen",
+        "Alles grob sortieren",
+        "Wichtigste Nachricht erledigen",
+        "Rest archivieren oder planen"
+    ]
     nonisolated static let learningDefaultTitles = [
         "Buch öffnen",
         "Inhalt lesen",
         "3 Minuten laut sagen \"Worum geht es hier überhaupt\"",
         "3 Stichpunkte machen"
     ]
-    nonisolated static let learningDefaultReminderMinuteOffsets = [0, 1, 3, 6]
+    nonisolated static let learningDefaultReminderMinuteOffsets = defaultReminderMinuteOffsets
+    nonisolated static let draftDefaultItems = [
+        checklistItem(
+            id: "55555555-5555-4555-8555-555555555551",
+            title: draftDefaultTitles[0],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[0]
+        ),
+        checklistItem(
+            id: "55555555-5555-4555-8555-555555555552",
+            title: draftDefaultTitles[1],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[1]
+        ),
+        checklistItem(
+            id: "55555555-5555-4555-8555-555555555553",
+            title: draftDefaultTitles[2],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[2]
+        ),
+        checklistItem(
+            id: "55555555-5555-4555-8555-555555555554",
+            title: draftDefaultTitles[3],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[3]
+        )
+    ]
+    nonisolated static let bugFixDefaultItems = [
+        checklistItem(
+            id: "66666666-6666-4666-8666-666666666661",
+            title: bugFixDefaultTitles[0],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[0]
+        ),
+        checklistItem(
+            id: "66666666-6666-4666-8666-666666666662",
+            title: bugFixDefaultTitles[1],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[1]
+        ),
+        checklistItem(
+            id: "66666666-6666-4666-8666-666666666663",
+            title: bugFixDefaultTitles[2],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[2]
+        ),
+        checklistItem(
+            id: "66666666-6666-4666-8666-666666666664",
+            title: bugFixDefaultTitles[3],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[3]
+        )
+    ]
+    nonisolated static let inboxDefaultItems = [
+        checklistItem(
+            id: "77777777-7777-4777-8777-777777777771",
+            title: inboxDefaultTitles[0],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[0]
+        ),
+        checklistItem(
+            id: "77777777-7777-4777-8777-777777777772",
+            title: inboxDefaultTitles[1],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[1]
+        ),
+        checklistItem(
+            id: "77777777-7777-4777-8777-777777777773",
+            title: inboxDefaultTitles[2],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[2]
+        ),
+        checklistItem(
+            id: "77777777-7777-4777-8777-777777777774",
+            title: inboxDefaultTitles[3],
+            reminderMinuteOffset: defaultReminderMinuteOffsets[3]
+        )
+    ]
     nonisolated static let learningDefaultItems = [
-        PomodoroChecklistItem(
-            id: UUID(uuidString: "11111111-1111-4111-8111-111111111111") ?? UUID(),
+        checklistItem(
+            id: "11111111-1111-4111-8111-111111111111",
             title: learningDefaultTitles[0],
             reminderMinuteOffset: learningDefaultReminderMinuteOffsets[0]
         ),
-        PomodoroChecklistItem(
-            id: UUID(uuidString: "22222222-2222-4222-8222-222222222222") ?? UUID(),
+        checklistItem(
+            id: "22222222-2222-4222-8222-222222222222",
             title: learningDefaultTitles[1],
             reminderMinuteOffset: learningDefaultReminderMinuteOffsets[1]
         ),
-        PomodoroChecklistItem(
-            id: UUID(uuidString: "33333333-3333-4333-8333-333333333333") ?? UUID(),
+        checklistItem(
+            id: "33333333-3333-4333-8333-333333333333",
             title: learningDefaultTitles[2],
             reminderMinuteOffset: learningDefaultReminderMinuteOffsets[2]
         ),
-        PomodoroChecklistItem(
-            id: UUID(uuidString: "44444444-4444-4444-8444-444444444444") ?? UUID(),
+        checklistItem(
+            id: "44444444-4444-4444-8444-444444444444",
             title: learningDefaultTitles[3],
             reminderMinuteOffset: learningDefaultReminderMinuteOffsets[3]
         )
@@ -206,14 +294,45 @@ struct PomodoroChecklist: Codable, Equatable {
     nonisolated static func defaultTemplate(for goal: String) -> PomodoroChecklist {
         let normalizedGoal = PomodoroSession.normalizedIntent(goal) ?? ""
 
-        guard normalizedGoal == learningGoal else {
+        switch normalizedGoal {
+        case draftGoal:
+            return PomodoroChecklist(
+                goal: normalizedGoal,
+                items: draftDefaultItems,
+                reminderMode: .normal
+            )
+        case bugFixGoal:
+            return PomodoroChecklist(
+                goal: normalizedGoal,
+                items: bugFixDefaultItems,
+                reminderMode: .normal
+            )
+        case inboxGoal:
+            return PomodoroChecklist(
+                goal: normalizedGoal,
+                items: inboxDefaultItems,
+                reminderMode: .normal
+            )
+        case learningGoal:
+            return PomodoroChecklist(
+                goal: normalizedGoal,
+                items: learningDefaultItems,
+                reminderMode: .normal
+            )
+        default:
             return PomodoroChecklist(goal: normalizedGoal)
         }
+    }
 
-        return PomodoroChecklist(
-            goal: normalizedGoal,
-            items: learningDefaultItems,
-            reminderMode: .normal
+    nonisolated private static func checklistItem(
+        id: String,
+        title: String,
+        reminderMinuteOffset: Int
+    ) -> PomodoroChecklistItem {
+        PomodoroChecklistItem(
+            id: UUID(uuidString: id) ?? UUID(),
+            title: title,
+            reminderMinuteOffset: reminderMinuteOffset
         )
     }
 
