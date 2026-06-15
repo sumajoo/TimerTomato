@@ -10,6 +10,7 @@ import SwiftUI
 struct HistoryDayCellView: View {
     let day: PomodoroHistoryDay
     let isSelected: Bool
+    let isDimmed: Bool
     let glassNamespace: Namespace.ID
     let select: () -> Void
 
@@ -25,6 +26,22 @@ struct HistoryDayCellView: View {
         day.didReachGoal ? TimerTomatoDesign.mint : TimerTomatoDesign.tomato
     }
 
+    private var secondaryTextColor: Color {
+        isDimmed ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText
+    }
+
+    private var countTextColor: Color {
+        if day.focusWinCount == 0 || isDimmed {
+            return TimerTomatoDesign.tertiaryText
+        }
+
+        return TimerTomatoDesign.secondaryText
+    }
+
+    private var accessibilityMonthContext: String {
+        isDimmed ? ", außerhalb des Monats" : ""
+    }
+
     var body: some View {
         Button(action: select) {
             baseContent
@@ -32,7 +49,9 @@ struct HistoryDayCellView: View {
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
-        .accessibilityLabel("\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.focusWinCount) Sessions")
+        .accessibilityLabel(
+            "\(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide))), \(day.focusWinCount) Sessions\(accessibilityMonthContext)"
+        )
         .accessibilityHint("Der Balken zeigt den Fortschritt zum Tagesziel.")
         .help("Tagesziel-Fortschritt")
     }
@@ -75,18 +94,18 @@ struct HistoryDayCellView: View {
         VStack(spacing: 4) {
             Text(weekdayText)
                 .font(.footnote)
-                .foregroundStyle(isSelected ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
+                .foregroundStyle(isSelected ? TimerTomatoDesign.mint : secondaryTextColor)
 
             dayNumber
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(TimerTomatoDesign.trackFill)
+                    .fill(TimerTomatoDesign.trackFill.opacity(isDimmed ? 0.55 : 1))
 
                 if day.focusWinCount > 0 {
                     GeometryReader { proxy in
                         Capsule()
-                            .fill(progressColor)
+                            .fill(progressColor.opacity(isDimmed ? 0.42 : 1))
                             .frame(width: proxy.size.width * CGFloat(day.goalProgress))
                     }
                 }
@@ -96,7 +115,7 @@ struct HistoryDayCellView: View {
 
             Text(day.focusWinCount == 0 ? "-" : "\(day.focusWinCount)")
                 .font(.footnote.monospacedDigit())
-                .foregroundStyle(day.focusWinCount == 0 ? TimerTomatoDesign.tertiaryText : TimerTomatoDesign.secondaryText)
+                .foregroundStyle(countTextColor)
         }
         .padding(.horizontal, 4)
         .frame(maxWidth: .infinity, minHeight: 62)
@@ -110,6 +129,7 @@ struct HistoryDayCellView: View {
     HistoryDayCellView(
         day: TimerTomatoPreviewData.sampleHistoryDay,
         isSelected: true,
+        isDimmed: false,
         glassNamespace: glassNamespace,
         select: {}
     )

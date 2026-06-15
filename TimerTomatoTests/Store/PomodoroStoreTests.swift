@@ -1142,6 +1142,48 @@ struct TimerTomatoTests {
         #expect(secondDay?.focusMinutes == 50)
     }
 
+    @Test func historyMonthBuildsFullWeekGridAndAggregatesPaddingDays() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        seedSessions(
+            [
+                session(month: 4, day: 30, startHour: 9, startMinute: 0),
+                session(day: 19, startHour: 10, startMinute: 0),
+                session(day: 19, startHour: 11, startMinute: 0)
+            ],
+            in: modelContainer
+        )
+        let store = makeStore(defaults: defaults, modelContainer: modelContainer)
+
+        let days = store.historyMonthDays(containing: date(day: 19, hour: 12, minute: 0))
+        let firstDay = days.first
+        let dayAfterLast = days.last.flatMap {
+            testCalendar.date(byAdding: .day, value: 1, to: $0.date)
+        }
+        let paddingDay = days.first {
+            store.isSameDay($0.date, date(month: 4, day: 30, hour: 12, minute: 0))
+        }
+        let monthDay = days.first {
+            store.isSameDay($0.date, date(day: 19, hour: 12, minute: 0))
+        }
+
+        #expect(days.count == 35)
+        #expect(days.count.isMultiple(of: 7))
+        #expect(store.isSameDay(firstDay?.date ?? .distantPast, date(month: 4, day: 27, hour: 0, minute: 0)))
+        #expect(store.isSameDay(dayAfterLast ?? .distantPast, date(month: 6, day: 1, hour: 0, minute: 0)))
+        #expect(paddingDay?.sessionCount == 1)
+        #expect(monthDay?.sessionCount == 2)
+    }
+
+    @Test func sameMonthUsesStoreCalendar() async {
+        let defaults = makeDefaults()
+        let store = makeStore(defaults: defaults)
+
+        #expect(store.isSameMonth(date(day: 1, hour: 12, minute: 0), date(day: 31, hour: 12, minute: 0)))
+        #expect(!store.isSameMonth(date(month: 4, day: 30, hour: 12, minute: 0), date(day: 1, hour: 12, minute: 0)))
+        #expect(!store.isSameMonth(date(day: 31, hour: 12, minute: 0), date(month: 6, day: 1, hour: 12, minute: 0)))
+    }
+
     @Test func historyDayAnalysisDerivesOutcomesRescueMomentumAndBlockers() async {
         let day = PomodoroHistoryDay(
             date: date(day: 18, hour: 0, minute: 0),
@@ -1594,6 +1636,7 @@ struct TimerTomatoTests {
     }
 
     private func session(
+        month: Int = 5,
         day: Int,
         startHour: Int,
         startMinute: Int,
@@ -1605,7 +1648,7 @@ struct TimerTomatoTests {
         blockerReason: PomodoroBlockerReason? = nil,
         blockerNextStep: String? = nil
     ) -> PomodoroSession {
-        let startedAt = date(day: day, hour: startHour, minute: startMinute)
+        let startedAt = date(month: month, day: day, hour: startHour, minute: startMinute)
         let endedAt = testCalendar.date(byAdding: .minute, value: durationMinutes, to: startedAt) ?? startedAt
 
         return PomodoroSession(
@@ -1630,11 +1673,15 @@ struct TimerTomatoTests {
     }
 
     private func date(day: Int = 1, hour: Int, minute: Int) -> Date {
+        date(month: 5, day: day, hour: hour, minute: minute)
+    }
+
+    private func date(month: Int, day: Int, hour: Int, minute: Int) -> Date {
         DateComponents(
             calendar: testCalendar,
             timeZone: testCalendar.timeZone,
             year: 2026,
-            month: 5,
+            month: month,
             day: day,
             hour: hour,
             minute: minute

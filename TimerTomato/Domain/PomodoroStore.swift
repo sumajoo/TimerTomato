@@ -794,14 +794,35 @@ final class PomodoroStore {
                 return nil
             }
 
-            let daySessions = sessions(on: day)
-
-            return PomodoroHistoryDay(
-                date: day,
-                sessions: daySessions,
-                dailyGoalSessions: dailyGoalSessions
-            )
+            return historyDay(on: day)
         }
+    }
+
+    func historyMonthDays(containing date: Date) -> [PomodoroHistoryDay] {
+        guard
+            let monthInterval = calendar.dateInterval(of: .month, for: date),
+            let lastMonthDay = calendar.date(byAdding: .day, value: -1, to: monthInterval.end)
+        else {
+            return historyDays(containing: date)
+        }
+
+        let gridStart = startOfWeek(containing: monthInterval.start)
+        let gridEndWeekStart = startOfWeek(containing: lastMonthDay)
+        let gridEnd = calendar.date(byAdding: .weekOfYear, value: 1, to: gridEndWeekStart) ?? monthInterval.end
+        var day = gridStart
+        var days: [PomodoroHistoryDay] = []
+
+        while day < gridEnd {
+            days.append(historyDay(on: day))
+
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: day), nextDay > day else {
+                break
+            }
+
+            day = nextDay
+        }
+
+        return days
     }
 
     func weekSummary(containing date: Date) -> PomodoroWeekSummary {
@@ -906,6 +927,10 @@ final class PomodoroStore {
 
     func isSameDay(_ firstDate: Date, _ secondDate: Date) -> Bool {
         calendar.isDate(firstDate, inSameDayAs: secondDate)
+    }
+
+    func isSameMonth(_ firstDate: Date, _ secondDate: Date) -> Bool {
+        calendar.isDate(firstDate, equalTo: secondDate, toGranularity: .month)
     }
 
     func dayTitle(for date: Date) -> String {
@@ -1149,6 +1174,14 @@ final class PomodoroStore {
 
     private func dayKey(for date: Date) -> Date {
         calendar.startOfDay(for: date)
+    }
+
+    private func historyDay(on day: Date) -> PomodoroHistoryDay {
+        PomodoroHistoryDay(
+            date: day,
+            sessions: sessions(on: day),
+            dailyGoalSessions: dailyGoalSessions
+        )
     }
 
     private func completeActiveTimer(at completionDate: Date) {
