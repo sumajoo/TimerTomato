@@ -12,10 +12,10 @@ import SwiftData
 final class PomodoroSessionRecord {
     #Index<PomodoroSessionRecord>([\.startedAt])
 
-    var id: UUID
-    var startedAt: Date
-    var endedAt: Date
-    var plannedMinutes: Int
+    var id = UUID()
+    var startedAt = Date.distantPast
+    var endedAt = Date.distantPast
+    var plannedMinutes = 0
     var pauseBeforeSeconds: TimeInterval?
     var intent: String?
     var outcomeRawValue: String?

@@ -13,7 +13,7 @@ It is designed around small, realistic focus wins: set a lightweight intent, run
 - Weekly Quest, daily goals, streaks, momentum, and rescue focus sessions
 - Local history with day and week summaries
 - Local notifications for focus, break, and checklist reminders
-- SwiftData-backed local persistence
+- SwiftData-backed persistence with private iCloud sync for completed session history
 
 ## Requirements
 
@@ -132,7 +132,7 @@ Code guidelines:
 
 ## Privacy
 
-TimerTomato is a local-first app. Focus sessions and settings are stored locally on the user's Mac through SwiftData and app storage.
+TimerTomato keeps active timers, settings, and checklist templates local on the user's Mac through app storage. Completed focus-session history is stored with SwiftData and can sync through the user's private iCloud CloudKit database.
 
 ## Security
 

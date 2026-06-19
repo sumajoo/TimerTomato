@@ -600,6 +600,33 @@ struct TimerTomatoTests {
         #expect(summaries.map(\.focusSeconds) == [1_500])
     }
 
+    @Test func inMemoryModelContainerPersistsSessionRecords() throws {
+        let modelContainer = makeModelContainer()
+        let context = modelContainer.mainContext
+        let session = PomodoroSession(
+            startedAt: date(hour: 9, minute: 0),
+            endedAt: date(hour: 9, minute: 25),
+            plannedMinutes: 25,
+            pauseBeforeSeconds: nil,
+            intent: "Lernen",
+            outcome: .completed,
+            isOutcomeTracked: true
+        )
+
+        context.insert(PomodoroSessionRecord(session: session))
+        try context.save()
+
+        var descriptor = FetchDescriptor<PomodoroSessionRecord>(
+            sortBy: [SortDescriptor(\.startedAt)]
+        )
+        descriptor.relationshipKeyPathsForPrefetching = []
+
+        let records = try context.fetch(descriptor)
+
+        #expect(records.count == 1)
+        #expect(PomodoroSession(record: records[0]) == session)
+    }
+
     @Test func segmentedSessionStillCountsAsSingleGoalSession() async {
         let defaults = makeDefaults()
         var now = date(hour: 9, minute: 0)
@@ -1442,6 +1469,50 @@ struct TimerTomatoTests {
         #expect(migrated.sessionHistory.count == 1)
         #expect(restored.sessionHistory.count == 1)
         #expect(restored.sessions(on: date(day: 18, hour: 12, minute: 0)).count == 1)
+    }
+
+    @Test func legacyMigrationSkipsExistingSessionIDs() async throws {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let legacySession = PomodoroSession(
+            startedAt: date(day: 18, hour: 9, minute: 0),
+            endedAt: date(day: 18, hour: 9, minute: 25),
+            plannedMinutes: 25,
+            pauseBeforeSeconds: nil
+        )
+        let snapshot = PomodoroSnapshot(
+            selectedMinutes: 25,
+            dailyGoalSessions: 4,
+            weeklyGoalSessions: nil,
+            status: .idle,
+            activeTimerKind: .focus,
+            storedDay: date(day: 18, hour: 0, minute: 0),
+            sessions: [legacySession],
+            sessionHistory: [legacySession],
+            sessionHistoryMigratedToSwiftData: false,
+            lastCompletedAt: legacySession.endedAt,
+            activeStartedAt: nil,
+            activeEndAt: nil,
+            activePlannedMinutes: nil,
+            activePauseBeforeSeconds: nil,
+            pausedRemainingSeconds: nil,
+            pendingFocusIntent: nil,
+            activeFocusIntent: nil,
+            pendingOutcomeSessionID: nil
+        )
+        let data = try JSONEncoder().encode(snapshot)
+
+        seedSessions([legacySession], in: modelContainer)
+        defaults.set(data, forKey: "PomodoroStore")
+
+        let migrated = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+
+        #expect(migrated.sessionHistory.count == 1)
+        #expect(migrated.sessionHistory[0].id == legacySession.id)
     }
 
     @Test func activeTimerRestoresFromAbsoluteDates() async {

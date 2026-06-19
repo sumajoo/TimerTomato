@@ -8,10 +8,12 @@
 import SwiftData
 
 enum TimerTomatoModelContainer {
+    static let cloudKitContainerIdentifier = "iCloud.com.jonasbecker.TimerTomato"
+
     @MainActor
-    static func makeDefault() -> ModelContainer {
+    static func makeDefault(isStoredInMemoryOnly: Bool = false) -> ModelContainer {
         do {
-            return try make()
+            return try make(isStoredInMemoryOnly: isStoredInMemoryOnly)
         } catch {
             fatalError("TimerTomato SwiftData container could not be created: \(error)")
         }
@@ -23,7 +25,8 @@ enum TimerTomatoModelContainer {
         ])
         let configuration = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: isStoredInMemoryOnly
+            isStoredInMemoryOnly: isStoredInMemoryOnly,
+            cloudKitDatabase: isStoredInMemoryOnly ? .none : .private(cloudKitContainerIdentifier)
         )
 
         return try ModelContainer(

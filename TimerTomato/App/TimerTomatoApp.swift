@@ -5,6 +5,7 @@
 //  Created by Jonas Becker on 24.05.26.
 //
 
+import Foundation
 import SwiftUI
 import SwiftData
 
@@ -16,8 +17,14 @@ struct TimerTomatoApp: App {
 
     private let modelContainer: ModelContainer
 
+    private static var isRunningTests: Bool {
+        ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    }
+
     init() {
-        let modelContainer = TimerTomatoModelContainer.makeDefault()
+        let modelContainer = TimerTomatoModelContainer.makeDefault(
+            isStoredInMemoryOnly: Self.isRunningTests
+        )
 
         self.modelContainer = modelContainer
         _store = State(initialValue: PomodoroStore(modelContainer: modelContainer))
