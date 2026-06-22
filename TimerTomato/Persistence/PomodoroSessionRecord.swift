@@ -24,6 +24,7 @@ final class PomodoroSessionRecord {
     var blockerReasonRawValue: String?
     var blockerNextStep: String?
     var focusSegmentsData: Data?
+    var cloudSyncVersion = 0
 
     init(
         id: UUID = UUID(),
@@ -37,7 +38,8 @@ final class PomodoroSessionRecord {
         isRescue: Bool = false,
         blockerReasonRawValue: String? = nil,
         blockerNextStep: String? = nil,
-        focusSegmentsData: Data? = nil
+        focusSegmentsData: Data? = nil,
+        cloudSyncVersion: Int = 1
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -51,9 +53,10 @@ final class PomodoroSessionRecord {
         self.blockerReasonRawValue = blockerReasonRawValue
         self.blockerNextStep = PomodoroSession.normalizedIntent(blockerNextStep)
         self.focusSegmentsData = focusSegmentsData
+        self.cloudSyncVersion = cloudSyncVersion
     }
 
-    convenience init(session: PomodoroSession) {
+    convenience init(session: PomodoroSession, cloudSyncVersion: Int = 1) {
         self.init(
             id: session.id,
             startedAt: session.startedAt,
@@ -66,7 +69,8 @@ final class PomodoroSessionRecord {
             isRescue: session.isRescue,
             blockerReasonRawValue: session.blockerReason?.rawValue,
             blockerNextStep: session.blockerNextStep,
-            focusSegmentsData: Self.encodedFocusSegments(session.focusSegments)
+            focusSegmentsData: Self.encodedFocusSegments(session.focusSegments),
+            cloudSyncVersion: cloudSyncVersion
         )
     }
 

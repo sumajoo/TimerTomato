@@ -1515,6 +1515,41 @@ struct TimerTomatoTests {
         #expect(migrated.sessionHistory[0].id == legacySession.id)
     }
 
+    @Test func existingSessionsAreMarkedForCloudExportOnce() async throws {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let legacySession = session(day: 18, startHour: 9, startMinute: 0)
+        let context = modelContainer.mainContext
+
+        context.insert(PomodoroSessionRecord(session: legacySession, cloudSyncVersion: 0))
+        try context.save()
+
+        _ = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+
+        let records = try context.fetch(FetchDescriptor<PomodoroSessionRecord>())
+
+        #expect(records.count == 1)
+        #expect(records[0].cloudSyncVersion == 1)
+        #expect(defaults.integer(forKey: "PomodoroStore.CloudExportMigrationVersion") == 1)
+
+        records[0].cloudSyncVersion = 2
+        try context.save()
+
+        _ = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+
+        let restoredRecords = try context.fetch(FetchDescriptor<PomodoroSessionRecord>())
+
+        #expect(restoredRecords[0].cloudSyncVersion == 2)
+    }
+
     @Test func activeTimerRestoresFromAbsoluteDates() async {
         let defaults = makeDefaults()
         var now = date(hour: 9, minute: 0)

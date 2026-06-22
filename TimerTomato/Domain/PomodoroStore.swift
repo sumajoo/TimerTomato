@@ -6,6 +6,7 @@
 //
 
 @preconcurrency import AppKit
+import CoreData
 import Foundation
 import Observation
 import SwiftData
@@ -29,6 +30,7 @@ final class PomodoroStore {
     static let focusIntentSuggestions = ["Entwurf schreiben", "Bug fixen", "Inbox leeren", "Lernen"]
     static let rescueFocusIntent = "Kurz dranbleiben"
     static let maximumFocusIntentCharacters = 44
+    private static let cloudExportMigrationVersion = 1
 
     var selectedMinutes = PomodoroStore.defaultMinutes {
         didSet {
@@ -123,9 +125,11 @@ final class PomodoroStore {
     private(set) var pausedRemainingSeconds: TimeInterval?
     private(set) var pendingOutcomeSessionID: UUID?
     private(set) var notificationPermission = PomodoroNotificationPermission.unknown
+    private(set) var historyRevision = 0
 
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let persistenceKey: String
+    @ObservationIgnored private let cloudExportMigrationKey: String
     @ObservationIgnored private let modelContainer: ModelContainer
     @ObservationIgnored private let modelContext: ModelContext
     @ObservationIgnored private let calendar: Calendar
@@ -137,6 +141,7 @@ final class PomodoroStore {
     @ObservationIgnored private var lastCompletedAt: Date?
     @ObservationIgnored private var isRestoringSnapshot = false
     @ObservationIgnored private var didRestoreWeeklyGoal = false
+    @ObservationIgnored private var remoteChangeObserver: NSObjectProtocol?
 
     var menuBarTitle: String {
         remainingClockText
@@ -334,7 +339,8 @@ final class PomodoroStore {
     }
 
     var sessionHistory: [PomodoroSession] {
-        fetchPersistedSessions()
+        _ = historyRevision
+        return fetchPersistedSessions()
     }
 
     init(
@@ -350,6 +356,7 @@ final class PomodoroStore {
 
         self.defaults = defaults
         self.persistenceKey = persistenceKey
+        self.cloudExportMigrationKey = "\(persistenceKey).CloudExportMigrationVersion"
         self.modelContainer = modelContainer
         self.modelContext = modelContainer.mainContext
         self.calendar = calendar
@@ -365,13 +372,21 @@ final class PomodoroStore {
 
         if shouldScheduleTimer {
             configureLifecycleObservers()
+            configureRemoteChangeObserver()
             refreshNotificationPermission()
         }
 
         restoreSnapshot()
+        markPersistedSessionsForCloudExportIfNeeded()
         initializeWeeklyGoalIfNeeded()
         refreshLifecycleState(at: initialDate)
         validatePendingOutcomeSession()
+    }
+
+    deinit {
+        if let remoteChangeObserver {
+            NotificationCenter.default.removeObserver(remoteChangeObserver)
+        }
     }
 
     func start() {
@@ -1111,6 +1126,7 @@ final class PomodoroStore {
     }
 
     private func fetchPersistedSessions() -> [PomodoroSession] {
+        _ = historyRevision
         var descriptor = FetchDescriptor<PomodoroSessionRecord>(
             sortBy: [SortDescriptor(\.startedAt)]
         )
@@ -1125,6 +1141,7 @@ final class PomodoroStore {
     }
 
     private func fetchSessions(startingAt startDate: Date, before endDate: Date) -> [PomodoroSession] {
+        _ = historyRevision
         let predicate = #Predicate<PomodoroSessionRecord> { session in
             session.startedAt >= startDate && session.startedAt < endDate
         }
@@ -1147,6 +1164,7 @@ final class PomodoroStore {
 
         do {
             try modelContext.save()
+            historyDataDidChange()
         } catch {
             assertionFailure("Could not save Pomodoro session: \(error)")
         }
@@ -1165,10 +1183,57 @@ final class PomodoroStore {
 
         do {
             try modelContext.save()
+            historyDataDidChange()
             return true
         } catch {
             assertionFailure("Could not migrate legacy Pomodoro sessions: \(error)")
             return false
+        }
+    }
+
+    private func configureRemoteChangeObserver() {
+        remoteChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSPersistentStoreRemoteChange,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.historyDataDidChange()
+            }
+        }
+    }
+
+    private func historyDataDidChange() {
+        historyRevision += 1
+        sessions = sessions(on: currentDate)
+        lastCompletedAt = sessions.last?.endedAt
+    }
+
+    private func markPersistedSessionsForCloudExportIfNeeded() {
+        guard defaults.integer(forKey: cloudExportMigrationKey) < Self.cloudExportMigrationVersion else {
+            return
+        }
+
+        var descriptor = FetchDescriptor<PomodoroSessionRecord>()
+        descriptor.relationshipKeyPathsForPrefetching = []
+
+        do {
+            let records = try modelContext.fetch(descriptor)
+            var didChange = false
+
+            for record in records where record.cloudSyncVersion < Self.cloudExportMigrationVersion {
+                record.cloudSyncVersion = Self.cloudExportMigrationVersion
+                didChange = true
+            }
+
+            if didChange {
+                try modelContext.save()
+                historyDataDidChange()
+            }
+
+            defaults.set(Self.cloudExportMigrationVersion, forKey: cloudExportMigrationKey)
+        } catch {
+            assertionFailure("Could not mark Pomodoro sessions for iCloud export: \(error)")
         }
     }
 
