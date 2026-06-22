@@ -18,5 +18,4 @@ struct PomodoroCompletionFeedback: Equatable {
     let title: String
     let detail: String
     let continuationIntent: String?
-    let offersRescueAction: Bool
 }

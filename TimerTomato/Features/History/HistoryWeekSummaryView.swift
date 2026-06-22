@@ -36,10 +36,6 @@ struct HistoryWeekSummaryView: View {
         store.weeklyGoalSuggestionSessions != store.weeklyGoalSessions
     }
 
-    private var shouldShowRescueAction: Bool {
-        store.shouldShowRescueAction(containing: selectedDate)
-    }
-
     var body: some View {
         GlassEffectContainer(spacing: TimerTomatoDesign.panelSpacing) {
             VStack(alignment: .leading, spacing: 14) {
@@ -49,10 +45,6 @@ struct HistoryWeekSummaryView: View {
                     .frame(height: 7)
 
                 progressContext
-
-                if shouldShowRescueAction {
-                    rescueAction
-                }
 
                 if blockerSummary.hasBlockers {
                     blockerHint
@@ -143,44 +135,6 @@ struct HistoryWeekSummaryView: View {
             contextLine("Ziel-Serie: \(streakSummary.currentText)", systemImage: "flame.fill", tint: TimerTomatoDesign.mint)
             contextLine("Letzte 7 Tage: \(activeDaysText)", systemImage: "checkmark.circle.fill", tint: TimerTomatoDesign.secondaryText)
         }
-    }
-
-    private var rescueAction: some View {
-        Button(action: store.startRescueFocus) {
-            HStack(spacing: 8) {
-                Image(systemName: "bolt.circle.fill")
-                    .foregroundStyle(TimerTomatoDesign.mint)
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Kurz dranbleiben")
-                        .font(.caption.bold())
-
-                    Text("10-min Reset reicht heute")
-                        .font(.caption2)
-                        .foregroundStyle(TimerTomatoDesign.secondaryText)
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, minHeight: 34)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .timerTomatoCapsuleHitTarget()
-        .background {
-            Capsule()
-                .fill(TimerTomatoDesign.surfaceFill)
-                .overlay {
-                    Capsule()
-                        .fill(TimerTomatoDesign.mint.opacity(0.08))
-                }
-        }
-        .glassEffect(.regular.interactive(), in: .capsule)
-        .help("10 Minuten Reset starten")
     }
 
     private var blockerHint: some View {

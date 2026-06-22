@@ -62,10 +62,6 @@ struct HistoryDayDetailView: View {
         day.completedOutcomeCount > 0 || day.progressedOutcomeCount > 0 || day.blockedOutcomeCount > 0
     }
 
-    private var hasStatusInsights: Bool {
-        day.rescueCount > 0
-    }
-
     private var topicSummaries: [PomodoroTopicSummary] {
         day.topicSummaries
     }
@@ -203,34 +199,22 @@ struct HistoryDayDetailView: View {
 
     @ViewBuilder
     private var insightChips: some View {
-        if hasOutcomeInsights || hasStatusInsights {
+        if hasOutcomeInsights {
             VStack(alignment: .leading, spacing: 7) {
-                if hasOutcomeInsights {
-                    HStack(spacing: 7) {
-                        if day.completedOutcomeCount > 0 {
-                            insightChip("Erledigt \(day.completedOutcomeCount)", systemImage: PomodoroSessionOutcome.completed.systemImage, tint: TimerTomatoDesign.mint)
-                        }
-
-                        if day.progressedOutcomeCount > 0 {
-                            insightChip("\(PomodoroSessionOutcome.progressed.shortTitle) \(day.progressedOutcomeCount)", systemImage: PomodoroSessionOutcome.progressed.systemImage, tint: TimerTomatoDesign.mint)
-                        }
-
-                        if day.blockedOutcomeCount > 0 {
-                            insightChip("Blockiert \(day.blockedOutcomeCount)", systemImage: PomodoroSessionOutcome.blocked.systemImage, tint: TimerTomatoDesign.tomato)
-                        }
-
-                        Spacer(minLength: 0)
+                HStack(spacing: 7) {
+                    if day.completedOutcomeCount > 0 {
+                        insightChip("Erledigt \(day.completedOutcomeCount)", systemImage: PomodoroSessionOutcome.completed.systemImage, tint: TimerTomatoDesign.mint)
                     }
-                }
 
-                if hasStatusInsights {
-                    HStack(spacing: 7) {
-                        if day.rescueCount > 0 {
-                            insightChip("Reset \(day.rescueCount)", systemImage: "bolt.circle.fill", tint: TimerTomatoDesign.mint)
-                        }
-
-                        Spacer(minLength: 0)
+                    if day.progressedOutcomeCount > 0 {
+                        insightChip("\(PomodoroSessionOutcome.progressed.shortTitle) \(day.progressedOutcomeCount)", systemImage: PomodoroSessionOutcome.progressed.systemImage, tint: TimerTomatoDesign.mint)
                     }
+
+                    if day.blockedOutcomeCount > 0 {
+                        insightChip("Blockiert \(day.blockedOutcomeCount)", systemImage: PomodoroSessionOutcome.blocked.systemImage, tint: TimerTomatoDesign.tomato)
+                    }
+
+                    Spacer(minLength: 0)
                 }
             }
         }

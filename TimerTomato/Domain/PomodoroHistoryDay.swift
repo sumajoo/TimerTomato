@@ -36,10 +36,6 @@ struct PomodoroHistoryDay: Identifiable, Equatable {
         outcomeCount(.blocked)
     }
 
-    var rescueCount: Int {
-        sessions.filter(\.isRescue).count
-    }
-
     var topicSummaries: [PomodoroTopicSummary] {
         PomodoroTopicSummary.summaries(for: sessions)
     }

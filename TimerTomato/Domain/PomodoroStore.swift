@@ -15,7 +15,6 @@ import SwiftData
 @Observable
 final class PomodoroStore {
     static let defaultMinutes = 25
-    static let rescueMinutes = 10
     static let minimumMinutes = 5
     static let maximumMinutes = 90
     static let minuteStep = 5
@@ -28,8 +27,8 @@ final class PomodoroStore {
     static let maximumWeeklyGoalSessions = maximumDailyGoalSessions * 7
     static let durationPresets = [10, 15, 25, 45, 60]
     static let focusIntentSuggestions = ["Entwurf schreiben", "Bug fixen", "Inbox leeren", "Lernen"]
-    static let rescueFocusIntent = "Kurz dranbleiben"
     static let maximumFocusIntentCharacters = 44
+    static let focusIntentCarryoverInterval: TimeInterval = 3 * 60 * 60
     private static let cloudExportMigrationVersion = 1
 
     var selectedMinutes = PomodoroStore.defaultMinutes {
@@ -121,7 +120,6 @@ final class PomodoroStore {
     private(set) var focusChecklistWindowRequestID: UUID?
     private(set) var activeFocusSegments: [PomodoroFocusSegment] = []
     private(set) var activeFocusSegmentStartedFocusSeconds: TimeInterval?
-    private(set) var activeIsRescueSession = false
     private(set) var pausedRemainingSeconds: TimeInterval?
     private(set) var pendingOutcomeSessionID: UUID?
     private(set) var notificationPermission = PomodoroNotificationPermission.unknown
@@ -397,7 +395,7 @@ final class PomodoroStore {
             return
         }
 
-        let focusIntent = PomodoroSession.normalizedIntent(pendingFocusIntent)
+        let focusIntent = nextFocusIntent(at: startDate)
         activeFocusIntent = focusIntent
         activeFocusChecklist = focusIntent.map { checklistTemplate(for: $0).resettingCompletions() }
         focusChecklistWindowRequestID = activeFocusChecklist == nil ? nil : UUID()
@@ -426,30 +424,6 @@ final class PomodoroStore {
             minutes: Self.breakMinutes,
             startDate: startDate,
             pauseBeforeSeconds: nil
-        )
-
-        requestNotificationAuthorization()
-    }
-
-    func startRescueFocus() {
-        let startDate = nowProvider()
-        refreshForToday(at: startDate)
-
-        guard canStartFocus else {
-            return
-        }
-
-        activeFocusIntent = Self.rescueFocusIntent
-        activeFocusChecklist = nil
-        focusChecklistWindowRequestID = nil
-        pendingFocusIntent = ""
-
-        startTimer(
-            kind: .focus,
-            minutes: Self.rescueMinutes,
-            startDate: startDate,
-            pauseBeforeSeconds: lastCompletedAt.map { max(0, startDate.timeIntervalSince($0)) },
-            isRescueSession: true
         )
 
         requestNotificationAuthorization()
@@ -514,7 +488,6 @@ final class PomodoroStore {
         focusChecklistWindowRequestID = nil
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = nil
-        activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = nowProvider()
 
@@ -745,18 +718,7 @@ final class PomodoroStore {
                 kind: .blocked,
                 title: "Blockade notiert",
                 detail: blockerFeedbackDetail(containing: session.endedAt),
-                continuationIntent: nil,
-                offersRescueAction: canStartFocus
-            )
-        }
-
-        if session.isRescue {
-            return PomodoroCompletionFeedback(
-                kind: .momentum,
-                title: "Drangeblieben",
-                detail: "\(session.plannedMinutes)-min Reset · Woche \(weekText)",
-                continuationIntent: nil,
-                offersRescueAction: false
+                continuationIntent: nil
             )
         }
 
@@ -771,8 +733,7 @@ final class PomodoroStore {
             kind: .focusWin,
             title: "+1 Session",
             detail: "Heute \(day.goalCountText) · Woche \(weekText)",
-            continuationIntent: continuationIntent,
-            offersRescueAction: false
+            continuationIntent: continuationIntent
         )
     }
 
@@ -921,13 +882,6 @@ final class PomodoroStore {
         )
     }
 
-    func shouldShowRescueAction(containing date: Date) -> Bool {
-        isSameDay(startOfWeek(containing: date), startOfWeek(containing: currentDate))
-            && canStartFocus
-            && focusWinsToday < dailyGoalSessions
-            && !momentumSummary.hasActivityToday
-    }
-
     func bestFocusDays(limit: Int) -> [PomodoroBestFocusDay] {
         Array(dailySummaries().prefix(limit))
     }
@@ -1029,8 +983,7 @@ final class PomodoroStore {
         kind: PomodoroTimerKind,
         minutes: Int,
         startDate: Date,
-        pauseBeforeSeconds: TimeInterval?,
-        isRescueSession: Bool = false
+        pauseBeforeSeconds: TimeInterval?
     ) {
         let durationSeconds = TimeInterval(minutes * 60)
 
@@ -1039,7 +992,6 @@ final class PomodoroStore {
         activeEndAt = startDate.addingTimeInterval(durationSeconds)
         activePlannedMinutes = minutes
         activePauseBeforeSeconds = pauseBeforeSeconds
-        activeIsRescueSession = isRescueSession
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = kind == .focus ? 0 : nil
         pausedRemainingSeconds = nil
@@ -1237,6 +1189,23 @@ final class PomodoroStore {
         }
     }
 
+    private func nextFocusIntent(at startDate: Date) -> String? {
+        if let pendingIntent = PomodoroSession.normalizedIntent(pendingFocusIntent) {
+            return pendingIntent
+        }
+
+        guard
+            let lastSession = fetchPersistedSessions().last,
+            !lastSession.isRescue,
+            let lastIntent = lastSession.intentTitle,
+            startDate.timeIntervalSince(lastSession.endedAt) <= Self.focusIntentCarryoverInterval
+        else {
+            return nil
+        }
+
+        return lastIntent
+    }
+
     private func dayKey(for date: Date) -> Date {
         calendar.startOfDay(for: date)
     }
@@ -1266,7 +1235,6 @@ final class PomodoroStore {
 
         let plannedMinutes = activePlannedMinutes ?? selectedMinutes
         let endedAt = max(completionDate, startedAt)
-        let isRescueSession = activeIsRescueSession
         let completedFocusSegments = closedFocusSegments(plannedMinutes: plannedMinutes)
         let session = PomodoroSession(
             startedAt: startedAt,
@@ -1276,7 +1244,7 @@ final class PomodoroStore {
             intent: PomodoroSession.primaryIntent(from: completedFocusSegments) ?? activeFocusIntent,
             outcome: nil,
             isOutcomeTracked: true,
-            isRescue: isRescueSession,
+            isRescue: false,
             focusSegments: completedFocusSegments
         )
 
@@ -1296,7 +1264,6 @@ final class PomodoroStore {
         focusChecklistWindowRequestID = nil
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = nil
-        activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = endedAt
 
@@ -1329,7 +1296,6 @@ final class PomodoroStore {
         focusChecklistWindowRequestID = nil
         activeFocusSegments = []
         activeFocusSegmentStartedFocusSeconds = nil
-        activeIsRescueSession = false
         pausedRemainingSeconds = nil
         currentDate = endedAt
 
@@ -1462,7 +1428,6 @@ final class PomodoroStore {
         focusChecklistWindowRequestID = nil
         activeFocusSegments = snapshot.activeFocusSegments ?? []
         activeFocusSegmentStartedFocusSeconds = snapshot.activeFocusSegmentStartedFocusSeconds
-        activeIsRescueSession = snapshot.activeIsRescueSession ?? false
         pausedRemainingSeconds = snapshot.pausedRemainingSeconds
         pendingFocusIntent = snapshot.pendingFocusIntent ?? ""
         pendingOutcomeSessionID = snapshot.pendingOutcomeSessionID
@@ -1496,8 +1461,7 @@ final class PomodoroStore {
             activeFocusChecklist: activeFocusChecklist,
             activeFocusSegments: activeFocusSegments,
             activeFocusSegmentStartedFocusSeconds: activeFocusSegmentStartedFocusSeconds,
-            pendingOutcomeSessionID: pendingOutcomeSessionID,
-            activeIsRescueSession: activeIsRescueSession
+            pendingOutcomeSessionID: pendingOutcomeSessionID
         )
 
         guard let data = try? JSONEncoder().encode(snapshot) else {

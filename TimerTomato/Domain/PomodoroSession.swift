@@ -98,7 +98,7 @@ struct PomodoroSession: Identifiable, Codable, Equatable {
     }
 
     var isFocusWin: Bool {
-        !isRescue && (!isOutcomeTracked || outcome?.countsAsFocusWin == true)
+        !isOutcomeTracked || outcome?.countsAsFocusWin == true
     }
 
     var countsAsMomentumActivity: Bool {

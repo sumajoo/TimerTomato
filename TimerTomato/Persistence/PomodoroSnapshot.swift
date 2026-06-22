@@ -30,5 +30,4 @@ struct PomodoroSnapshot: Codable {
     var activeFocusSegments: [PomodoroFocusSegment]? = nil
     var activeFocusSegmentStartedFocusSeconds: TimeInterval? = nil
     var pendingOutcomeSessionID: UUID? = nil
-    var activeIsRescueSession: Bool? = nil
 }

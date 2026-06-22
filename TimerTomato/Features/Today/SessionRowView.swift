@@ -25,10 +25,6 @@ struct SessionRowView: View {
     }
 
     private var subtitleText: String {
-        if session.isRescue {
-            return "\(session.plannedMinutes)-min Reset · \(timeRangeText)"
-        }
-
         if session.isMultiTopic {
             return "\(topicBreakdownText(limit: 2)) · \(timeRangeText)"
         }
@@ -97,20 +93,12 @@ struct SessionRowView: View {
             return "questionmark.circle.fill"
         }
 
-        if session.isRescue {
-            return "bolt.circle.fill"
-        }
-
         return session.isFocusWin ? "checkmark.circle.fill" : "minus.circle.fill"
     }
 
     private var leadingTint: Color {
         if session.isPendingOutcome {
             return TimerTomatoDesign.tertiaryText
-        }
-
-        if session.isRescue {
-            return TimerTomatoDesign.mint
         }
 
         return session.isFocusWin ? TimerTomatoDesign.mint : TimerTomatoDesign.tomato

@@ -9,9 +9,7 @@ import SwiftUI
 
 struct CompletionFeedbackView: View {
     let feedback: PomodoroCompletionFeedback
-    let canStartRescue: Bool
     let canContinueFocus: Bool
-    let startRescue: () -> Void
     let continueFocus: (String) -> Void
 
     private var tint: Color {
@@ -60,30 +58,6 @@ struct CompletionFeedbackView: View {
                 continueButton(intent: continuationIntent)
             }
 
-            if feedback.offersRescueAction && canStartRescue {
-                Button(action: startRescue) {
-                    Label("10-min Reset", systemImage: "bolt.fill")
-                        .font(.caption2.bold())
-                        .labelStyle(.titleAndIcon)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-                        .foregroundStyle(TimerTomatoDesign.mint)
-                        .padding(.horizontal, 8)
-                        .frame(minHeight: TimerTomatoDesign.minimumHitTarget)
-                        .contentShape(Capsule())
-                }
-                .background {
-                    Capsule()
-                        .fill(TimerTomatoDesign.surfaceFill)
-                        .overlay {
-                            Capsule()
-                                .fill(TimerTomatoDesign.mint.opacity(0.10))
-                        }
-                }
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .buttonStyle(.plain)
-                .help("10 Minuten Reset starten")
-            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -135,12 +109,9 @@ struct CompletionFeedbackView: View {
             kind: .focusWin,
             title: "+1 Session",
             detail: "Heute 3/3 · Woche 6/8",
-            continuationIntent: "Lernen",
-            offersRescueAction: false
+            continuationIntent: "Lernen"
         ),
-        canStartRescue: true,
         canContinueFocus: true,
-        startRescue: {},
         continueFocus: { _ in }
     )
     .padding()

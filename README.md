@@ -10,7 +10,7 @@ It is designed around small, realistic focus wins: set a lightweight intent, run
 - Optional session intent before starting a focus block
 - Per-goal focus checklist window with editable local templates and Normal/Quiet/Off reminders
 - Focus Wins outcome flow: completed, progressed, or blocked
-- Weekly Quest, daily goals, streaks, momentum, and rescue focus sessions
+- Weekly Quest, daily goals, streaks, and momentum
 - Local history with day and week summaries
 - Local notifications for focus, break, and checklist reminders
 - SwiftData-backed persistence with private iCloud sync for completed session history
