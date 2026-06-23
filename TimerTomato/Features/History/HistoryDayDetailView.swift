@@ -8,6 +8,11 @@
 import SwiftUI
 
 struct HistoryDayDetailView: View {
+    @FocusState private var isSessionIntentFieldFocused: Bool
+
+    @State private var editingSessionID: UUID?
+    @State private var draftSessionIntent = ""
+
     let store: PomodoroStore
     let selectedDate: Date
 
@@ -66,6 +71,12 @@ struct HistoryDayDetailView: View {
         day.topicSummaries
     }
 
+    private var orderedSessions: [PomodoroSession] {
+        day.sessions.sorted { first, second in
+            first.startedAt > second.startedAt
+        }
+    }
+
     private var totalTopicSeconds: TimeInterval {
         topicSummaries.reduce(0) { result, summary in
             result + summary.focusSeconds
@@ -108,6 +119,7 @@ struct HistoryDayDetailView: View {
                         insightChips
                         blockerInsight
                         goalStatus
+                        sessionTagSection
                     }
                 }
             }
@@ -241,6 +253,160 @@ struct HistoryDayDetailView: View {
         .foregroundStyle(day.didReachGoal ? TimerTomatoDesign.mint : TimerTomatoDesign.secondaryText)
     }
 
+    private var sessionTagSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Sessions", systemImage: "clock")
+                .font(.footnote.bold())
+                .foregroundStyle(.primary)
+                .labelStyle(.titleAndIcon)
+
+            VStack(spacing: 7) {
+                ForEach(orderedSessions) { session in
+                    sessionTagRow(for: session)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sessionTagRow(for session: PomodoroSession) -> some View {
+        if editingSessionID == session.id {
+            sessionTagEditor(for: session)
+        } else {
+            Button {
+                openSessionTagEditor(for: session)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "tag")
+                        .font(.caption)
+                        .foregroundStyle(TimerTomatoDesign.mint)
+                        .accessibilityHidden(true)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.intentTitle ?? "Ohne Tag")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(session.intentTitle == nil ? TimerTomatoDesign.secondaryText : .primary)
+                            .lineLimit(1)
+
+                        Text(sessionTimeRangeText(session))
+                            .font(.caption2)
+                            .foregroundStyle(TimerTomatoDesign.secondaryText)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "square.and.pencil")
+                        .font(.caption2)
+                        .foregroundStyle(TimerTomatoDesign.tertiaryText)
+                        .accessibilityHidden(true)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity)
+                .background {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(TimerTomatoDesign.surfaceFill)
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .help("Session-Tag bearbeiten")
+        }
+    }
+
+    private func sessionTagEditor(for session: PomodoroSession) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: "tag.fill")
+                    .font(.caption)
+                    .foregroundStyle(TimerTomatoDesign.mint)
+                    .accessibilityHidden(true)
+
+                TextField("Tag", text: $draftSessionIntent)
+                    .textFieldStyle(.plain)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .focused($isSessionIntentFieldFocused)
+                    .onSubmit {
+                        applySessionTag(for: session)
+                    }
+
+                Button("Tag übernehmen", systemImage: "checkmark") {
+                    applySessionTag(for: session)
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .foregroundStyle(TimerTomatoDesign.mint)
+                .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
+                .contentShape(Circle())
+                .help("Tag übernehmen")
+
+                Button("Abbrechen", systemImage: "xmark") {
+                    closeSessionTagEditor()
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .foregroundStyle(TimerTomatoDesign.tertiaryText)
+                .frame(width: TimerTomatoDesign.compactHitTarget, height: TimerTomatoDesign.compactHitTarget)
+                .contentShape(Circle())
+                .help("Abbrechen")
+            }
+
+            HStack(spacing: 6) {
+                Menu {
+                    ForEach(PomodoroStore.focusIntentSuggestions, id: \.self) { suggestion in
+                        Button(suggestion) {
+                            draftSessionIntent = suggestion
+                            applySessionTag(for: session)
+                        }
+                    }
+                } label: {
+                    Label("Vorschläge", systemImage: "list.bullet")
+                        .font(.caption2)
+                        .labelStyle(.titleAndIcon)
+                        .foregroundStyle(TimerTomatoDesign.secondaryText)
+                        .padding(.horizontal, 7)
+                        .frame(height: 22)
+                        .background {
+                            Capsule()
+                                .fill(TimerTomatoDesign.trackFill)
+                        }
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .help("Tag-Vorschlag auswählen")
+
+                Spacer(minLength: 0)
+
+                if session.intentTitle != nil || !draftSessionIntent.isEmpty {
+                    Button("Tag entfernen", systemImage: "xmark.circle") {
+                        draftSessionIntent = ""
+                        applySessionTag(for: session)
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(TimerTomatoDesign.tertiaryText)
+                    .frame(width: TimerTomatoDesign.compactHitTarget, height: 22)
+                    .contentShape(Circle())
+                    .help("Tag entfernen")
+                }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(TimerTomatoDesign.surfaceFill)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(TimerTomatoDesign.mint.opacity(0.20), lineWidth: 0.7)
+                }
+        }
+        .onExitCommand(perform: closeSessionTagEditor)
+    }
+
     private func insightChip(_ title: String, systemImage: String, tint: Color) -> some View {
         Label(title, systemImage: systemImage)
             .font(.caption2.bold())
@@ -258,6 +424,29 @@ struct HistoryDayDetailView: View {
                             .fill(tint.opacity(0.08))
                     }
             }
+    }
+
+    private func sessionTimeRangeText(_ session: PomodoroSession) -> String {
+        let start = session.startedAt.formatted(date: .omitted, time: .shortened)
+        let end = session.endedAt.formatted(date: .omitted, time: .shortened)
+        return "\(start) - \(end)"
+    }
+
+    private func openSessionTagEditor(for session: PomodoroSession) {
+        draftSessionIntent = session.intentTitle ?? ""
+        editingSessionID = session.id
+        isSessionIntentFieldFocused = true
+    }
+
+    private func closeSessionTagEditor() {
+        editingSessionID = nil
+        draftSessionIntent = ""
+        isSessionIntentFieldFocused = false
+    }
+
+    private func applySessionTag(for session: PomodoroSession) {
+        store.updateSessionIntent(session.id, intent: draftSessionIntent)
+        closeSessionTagEditor()
     }
 }
 

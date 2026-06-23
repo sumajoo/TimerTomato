@@ -1497,6 +1497,63 @@ struct TimerTomatoTests {
         #expect(restoredRecords[0].cloudSyncVersion == 2)
     }
 
+    @Test func sessionIntentCanBeChangedAfterCompletion() async throws {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let context = modelContainer.mainContext
+        let originalSession = session(
+            day: 18,
+            startHour: 9,
+            startMinute: 0,
+            intent: "Lernen",
+            outcome: .completed,
+            isOutcomeTracked: true
+        )
+        seedSessions([originalSession], in: modelContainer)
+
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+
+        store.updateSessionIntent(originalSession.id, intent: "  Schreiben  ")
+
+        #expect(store.sessions[0].intentTitle == "Schreiben")
+        #expect(store.sessions[0].topicSummaries[0].intent == "Schreiben")
+
+        let records = try context.fetch(FetchDescriptor<PomodoroSessionRecord>())
+        let persistedSession = PomodoroSession(record: records[0])
+
+        #expect(persistedSession.intentTitle == "Schreiben")
+        #expect(persistedSession.topicSummaries[0].intent == "Schreiben")
+    }
+
+    @Test func sessionIntentCanBeRemovedAfterCompletion() async {
+        let defaults = makeDefaults()
+        let modelContainer = makeModelContainer()
+        let originalSession = session(
+            day: 18,
+            startHour: 9,
+            startMinute: 0,
+            intent: "Lernen",
+            outcome: .completed,
+            isOutcomeTracked: true
+        )
+        seedSessions([originalSession], in: modelContainer)
+
+        let store = makeStore(
+            defaults: defaults,
+            modelContainer: modelContainer,
+            now: { date(day: 18, hour: 12, minute: 0) }
+        )
+
+        store.updateSessionIntent(originalSession.id, intent: " ")
+
+        #expect(store.sessions[0].intentTitle == nil)
+        #expect(store.sessions[0].topicSummaries[0].intent == nil)
+    }
+
     @Test func activeTimerRestoresFromAbsoluteDates() async {
         let defaults = makeDefaults()
         var now = date(hour: 9, minute: 0)

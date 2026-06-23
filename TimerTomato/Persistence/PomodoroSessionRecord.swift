@@ -74,6 +74,31 @@ final class PomodoroSessionRecord {
         )
     }
 
+    func updateIntent(_ intent: String?) {
+        let normalizedIntent = PomodoroSession.normalizedIntent(intent)
+        self.intent = normalizedIntent
+
+        let existingSegments = Self.decodedFocusSegments(focusSegmentsData)
+        let segments = existingSegments?.isEmpty == false ? existingSegments! : [
+            PomodoroFocusSegment(
+                intent: normalizedIntent,
+                startedFocusSeconds: 0,
+                focusSeconds: TimeInterval(max(plannedMinutes, 0) * 60)
+            )
+        ]
+
+        focusSegmentsData = Self.encodedFocusSegments(
+            segments.map { segment in
+                PomodoroFocusSegment(
+                    id: segment.id,
+                    intent: normalizedIntent,
+                    startedFocusSeconds: segment.startedFocusSeconds,
+                    focusSeconds: segment.focusSeconds
+                )
+            }
+        )
+    }
+
     private static func encodedFocusSegments(_ focusSegments: [PomodoroFocusSegment]) -> Data? {
         try? JSONEncoder().encode(focusSegments)
     }

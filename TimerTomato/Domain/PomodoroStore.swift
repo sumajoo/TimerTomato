@@ -706,6 +706,31 @@ final class PomodoroStore {
         }
     }
 
+    func updateSessionIntent(_ sessionID: UUID, intent: String?) {
+        let normalizedIntent = Self.normalizedStoredIntent(intent)
+        let predicate = #Predicate<PomodoroSessionRecord> { session in
+            session.id == sessionID
+        }
+        var descriptor = FetchDescriptor<PomodoroSessionRecord>(predicate: predicate)
+        descriptor.fetchLimit = 1
+
+        do {
+            guard let record = try modelContext.fetch(descriptor).first else {
+                return
+            }
+
+            guard record.intent != normalizedIntent else {
+                return
+            }
+
+            record.updateIntent(normalizedIntent)
+            try modelContext.save()
+            historyDataDidChange()
+        } catch {
+            assertionFailure("Could not update Pomodoro session intent: \(error)")
+        }
+    }
+
     func completionFeedback(
         for session: PomodoroSession,
         outcome: PomodoroSessionOutcome
@@ -1204,6 +1229,12 @@ final class PomodoroStore {
         }
 
         return lastIntent
+    }
+
+    private static func normalizedStoredIntent(_ intent: String?) -> String? {
+        PomodoroSession.normalizedIntent(intent).map {
+            String($0.prefix(maximumFocusIntentCharacters))
+        }
     }
 
     private func dayKey(for date: Date) -> Date {
