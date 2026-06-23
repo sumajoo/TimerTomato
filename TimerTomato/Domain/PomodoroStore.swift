@@ -44,6 +44,19 @@ final class PomodoroStore {
                 return
             }
 
+            if !isApplyingFocusIntentCarryover {
+                let activeCarriedFocusIntentSessionID = carriedFocusIntentSessionID
+                carriedFocusIntentSessionID = nil
+
+                if PomodoroSession.normalizedIntent(pendingFocusIntent) == nil {
+                    isFocusIntentCarryoverSuppressed = true
+                    suppressedFocusIntentCarryoverSessionID = focusIntentCarryoverCandidate(at: currentDate)?.id ?? activeCarriedFocusIntentSessionID
+                } else {
+                    isFocusIntentCarryoverSuppressed = false
+                    suppressedFocusIntentCarryoverSessionID = nil
+                }
+            }
+
             persistSnapshot()
         }
     }
@@ -139,6 +152,10 @@ final class PomodoroStore {
     @ObservationIgnored private var lastCompletedAt: Date?
     @ObservationIgnored private var isRestoringSnapshot = false
     @ObservationIgnored private var didRestoreWeeklyGoal = false
+    @ObservationIgnored private var isApplyingFocusIntentCarryover = false
+    @ObservationIgnored private var isFocusIntentCarryoverSuppressed = false
+    @ObservationIgnored private var carriedFocusIntentSessionID: UUID?
+    @ObservationIgnored private var suppressedFocusIntentCarryoverSessionID: UUID?
     @ObservationIgnored private var remoteChangeObserver: NSObjectProtocol?
 
     var menuBarTitle: String {
@@ -531,7 +548,14 @@ final class PomodoroStore {
     }
 
     func clearFocusIntent() {
+        let activeCarriedFocusIntentSessionID = carriedFocusIntentSessionID
         pendingFocusIntent = ""
+        carriedFocusIntentSessionID = nil
+        isFocusIntentCarryoverSuppressed = true
+        suppressedFocusIntentCarryoverSessionID = focusIntentCarryoverCandidate(at: nowProvider())?.id
+            ?? focusIntentCarryoverCandidate(at: currentDate)?.id
+            ?? activeCarriedFocusIntentSessionID
+        persistSnapshot()
     }
 
     func checklistTemplate(for goal: String) -> PomodoroChecklist {
@@ -699,6 +723,8 @@ final class PomodoroStore {
             record.blockerNextStep = outcome == .blocked ? PomodoroSession.normalizedIntent(blockerNextStep) : nil
             try modelContext.save()
             self.pendingOutcomeSessionID = nil
+            isFocusIntentCarryoverSuppressed = false
+            suppressedFocusIntentCarryoverSessionID = nil
             refreshForToday(at: currentDate)
             persistSnapshot()
         } catch {
@@ -1089,6 +1115,7 @@ final class PomodoroStore {
         currentDate = date
         sessions = sessions(on: date)
         lastCompletedAt = sessions.last?.endedAt
+        refreshPendingFocusIntentCarryover(at: date)
 
         guard !calendar.isDate(storedDay, inSameDayAs: date) else {
             return
@@ -1219,22 +1246,85 @@ final class PomodoroStore {
             return pendingIntent
         }
 
-        guard
-            let lastSession = fetchPersistedSessions().last,
-            !lastSession.isRescue,
-            let lastIntent = lastSession.intentTitle,
-            startDate.timeIntervalSince(lastSession.endedAt) <= Self.focusIntentCarryoverInterval
-        else {
+        guard !isFocusIntentCarryoverSuppressed else {
             return nil
         }
 
-        return lastIntent
+        return focusIntentCarryoverCandidate(at: startDate)?.intentTitle
     }
 
     private static func normalizedStoredIntent(_ intent: String?) -> String? {
         PomodoroSession.normalizedIntent(intent).map {
             String($0.prefix(maximumFocusIntentCharacters))
         }
+    }
+
+    private func refreshPendingFocusIntentCarryover(at date: Date) {
+        clearExpiredFocusIntentCarryover(at: date)
+
+        guard
+            canStartFocus,
+            !isFocusIntentCarryoverSuppressed,
+            PomodoroSession.normalizedIntent(pendingFocusIntent) == nil,
+            let carryoverSession = focusIntentCarryoverCandidate(at: date),
+            carryoverSession.id != suppressedFocusIntentCarryoverSessionID
+        else {
+            return
+        }
+
+        isApplyingFocusIntentCarryover = true
+        pendingFocusIntent = carryoverSession.intentTitle ?? ""
+        isApplyingFocusIntentCarryover = false
+        carriedFocusIntentSessionID = carryoverSession.id
+        isFocusIntentCarryoverSuppressed = false
+        suppressedFocusIntentCarryoverSessionID = nil
+        persistSnapshot()
+    }
+
+    private func clearExpiredFocusIntentCarryover(at date: Date) {
+        guard let carriedFocusIntentSessionID else {
+            return
+        }
+
+        guard let carryoverSession = fetchPersistedSessions().first(where: { $0.id == carriedFocusIntentSessionID }) else {
+            self.carriedFocusIntentSessionID = nil
+            persistSnapshot()
+            return
+        }
+
+        let elapsedSeconds = date.timeIntervalSince(carryoverSession.endedAt)
+        let isCarryoverStillValid = elapsedSeconds >= 0 && elapsedSeconds <= Self.focusIntentCarryoverInterval
+        let carriedIntent = carryoverSession.intentTitle
+
+        guard !isCarryoverStillValid || PomodoroSession.normalizedIntent(pendingFocusIntent) != carriedIntent else {
+            return
+        }
+
+        if PomodoroSession.normalizedIntent(pendingFocusIntent) == carriedIntent {
+            isApplyingFocusIntentCarryover = true
+            pendingFocusIntent = ""
+            isApplyingFocusIntentCarryover = false
+        }
+
+        self.carriedFocusIntentSessionID = nil
+        persistSnapshot()
+    }
+
+    private func focusIntentCarryoverCandidate(at date: Date) -> PomodoroSession? {
+        guard
+            let lastSession = fetchPersistedSessions().last,
+            !lastSession.isRescue,
+            lastSession.intentTitle != nil
+        else {
+            return nil
+        }
+
+        let elapsedSeconds = date.timeIntervalSince(lastSession.endedAt)
+        guard elapsedSeconds >= 0 && elapsedSeconds <= Self.focusIntentCarryoverInterval else {
+            return nil
+        }
+
+        return lastSession
     }
 
     private func dayKey(for date: Date) -> Date {
@@ -1462,6 +1552,9 @@ final class PomodoroStore {
         pausedRemainingSeconds = snapshot.pausedRemainingSeconds
         pendingFocusIntent = snapshot.pendingFocusIntent ?? ""
         pendingOutcomeSessionID = snapshot.pendingOutcomeSessionID
+        isFocusIntentCarryoverSuppressed = snapshot.isFocusIntentCarryoverSuppressed ?? false
+        carriedFocusIntentSessionID = snapshot.carriedFocusIntentSessionID
+        suppressedFocusIntentCarryoverSessionID = snapshot.suppressedFocusIntentCarryoverSessionID
         isRestoringSnapshot = false
 
         if shouldMigrateLegacySessions, migrateLegacySessionsIfNeeded(legacySessions) {
@@ -1492,7 +1585,10 @@ final class PomodoroStore {
             activeFocusChecklist: activeFocusChecklist,
             activeFocusSegments: activeFocusSegments,
             activeFocusSegmentStartedFocusSeconds: activeFocusSegmentStartedFocusSeconds,
-            pendingOutcomeSessionID: pendingOutcomeSessionID
+            pendingOutcomeSessionID: pendingOutcomeSessionID,
+            isFocusIntentCarryoverSuppressed: isFocusIntentCarryoverSuppressed,
+            carriedFocusIntentSessionID: carriedFocusIntentSessionID,
+            suppressedFocusIntentCarryoverSessionID: suppressedFocusIntentCarryoverSessionID
         )
 
         guard let data = try? JSONEncoder().encode(snapshot) else {

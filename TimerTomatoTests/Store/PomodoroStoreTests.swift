@@ -949,6 +949,8 @@ struct TimerTomatoTests {
         store.tick()
         store.completePendingOutcome(.completed)
 
+        #expect(store.pendingFocusIntent == "Lernen")
+
         now = date(hour: 9, minute: 35)
         store.start()
 
@@ -967,7 +969,34 @@ struct TimerTomatoTests {
         store.tick()
         store.completePendingOutcome(.completed)
 
+        #expect(store.pendingFocusIntent == "Lernen")
+
         now = date(hour: 13, minute: 0)
+        store.refreshForToday()
+
+        #expect(store.pendingFocusIntent.isEmpty)
+
+        store.start()
+
+        #expect(store.activeFocusIntentText == nil)
+        #expect(store.pendingFocusIntent.isEmpty)
+    }
+
+    @Test func nextFocusKeepsManualClearAfterCarryover() async {
+        let defaults = makeDefaults()
+        var now = date(hour: 9, minute: 0)
+        let store = makeStore(defaults: defaults, now: { now })
+
+        store.pendingFocusIntent = "Lernen"
+        store.start()
+        now = date(hour: 9, minute: 25)
+        store.tick()
+        store.completePendingOutcome(.completed)
+
+        #expect(store.pendingFocusIntent == "Lernen")
+
+        store.clearFocusIntent()
+        now = date(hour: 9, minute: 35)
         store.start()
 
         #expect(store.activeFocusIntentText == nil)
